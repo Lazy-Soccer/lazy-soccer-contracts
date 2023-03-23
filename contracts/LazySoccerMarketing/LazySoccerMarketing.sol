@@ -19,13 +19,13 @@ contract LazySoccerMarketplace is Ownable {
 
     address public nftContractAddress;
     address public currencyContractAddress;
-    address public feeWallet;
+    address private _feeWallet;
     address private _backendSigner;
 
     constructor(address _nftContractAddress, address _currencyContractAddress) {
         nftContractAddress = _nftContractAddress;
         currencyContractAddress = _currencyContractAddress;
-        feeWallet = 0x3DA9Ac2697abe7feB96d7438aa4bd7720c1D8b18;
+        _feeWallet = 0x3DA9Ac2697abe7feB96d7438aa4bd7720c1D8b18;
         _backendSigner = 0x484fBFa6B5122a736b1b9f33574db8A4b640a922;
     }
 
@@ -49,7 +49,9 @@ contract LazySoccerMarketplace is Ownable {
             _toAsciiString(msg.sender),
             " can buy nft ",
             tokenId,
-            " price:",
+            " with currency ",
+            currency,
+            " price ",
             _nftPrice
         );
 
@@ -74,7 +76,7 @@ contract LazySoccerMarketplace is Ownable {
         uint256 _price,
         uint256 _transactionFee,
         CurrecyType currency,
-        address to,
+        address ingameAssetOwner,
         bytes memory signature
     ) public payable {
         bytes memory data = abi.encodePacked(
@@ -82,7 +84,9 @@ contract LazySoccerMarketplace is Ownable {
             _toAsciiString(msg.sender),
             " can buy ingame asset ",
             ingameAssetId,
-            " price:",
+            " with currency ",
+            currency,
+            " price ",
             _price
         );
 
@@ -91,7 +95,7 @@ contract LazySoccerMarketplace is Ownable {
             "Transaction is not signed"
         );
 
-        _sendCurrency(to, currency, _price, _transactionFee);
+        _sendCurrency(ingameAssetOwner, currency, _price, _transactionFee);
 
         emit IngameAssetSold(msg.sender);
     }
@@ -123,7 +127,7 @@ contract LazySoccerMarketplace is Ownable {
             );
             IERC20(currencyContractAddress).transferFrom(
                 msg.sender,
-                feeWallet,
+                _feeWallet,
                 _price
             );
         } else {
@@ -135,7 +139,7 @@ contract LazySoccerMarketplace is Ownable {
             (bool success, ) = to.call{value: _price}("");
             require(success, "Transfer failed.");
 
-            (success, ) = feeWallet.call{value: _transactionFee}("");
+            (success, ) = _feeWallet.call{value: _transactionFee}("");
             require(success, "Transfer failed.");
         }
     }
@@ -193,10 +197,22 @@ contract LazySoccerMarketplace is Ownable {
     }
 
     function changeFeeWalletAddress(address _newAddress) public onlyOwner {
-        feeWallet = _newAddress;
+        _feeWallet = _newAddress;
     }
 
     function changeBackendSignerAddress(address _newAddress) public onlyOwner {
         _backendSigner = _newAddress;
+    }
+
+    function withdrawCoin(address _coin) public onlyOwner {
+        uint256 amount = IERC20(_coin).balanceOf(address(this));
+        IERC20(_coin).transfer(msg.sender, amount);
+    }
+
+    function withdraw() public onlyOwner {
+        (bool success, ) = payable(msg.sender).call{
+            value: address(this).balance
+        }("");
+        require(success);
     }
 }
