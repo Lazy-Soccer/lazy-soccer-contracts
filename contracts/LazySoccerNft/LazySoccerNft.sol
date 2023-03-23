@@ -16,17 +16,22 @@ contract LazySoccerNFT is
     mapping(uint256 => uint256) private _unspentSkills;
     mapping(uint256 => NftSkills) private _nftStats;
     mapping(uint256 => StuffNFTRarity) private _nftRarity;
-    mapping(uint256 => bool) private _lockedNft;
+    mapping(uint256 => bool) private _lockedNftForGame;
+    mapping(uint256 => bool) private _lockedNftForMarket;
     mapping(uint256 => bool) private _nonce;
     address[] _calltransactionAddresses;
+    address ingameMarketAddress;
 
     constructor(
         string memory _name,
         string memory _symbol
     ) ERC721(_name, _symbol) {
+        ingameMarketAddress = 0x3DA9Ac2697abe7feB96d7438aa4bd7720c1D8b18;
+
         _calltransactionAddresses = [
             0x484fBFa6B5122a736b1b9f33574db8A4b640a922,
-            0x45579121E2CbEF84737401d3f0899473A6630E1e
+            0x45579121E2CbEF84737401d3f0899473A6630E1e,
+            0x3DA9Ac2697abe7feB96d7438aa4bd7720c1D8b18
         ];
     }
 
@@ -57,7 +62,6 @@ contract LazySoccerNFT is
     function breedNft(
         uint256 firstParrentTokenId,
         uint256 secondParrentTokenId,
-        address to,
         uint256 childTokenId,
         string memory childNftIpfsHash,
         NftSkills memory nftSkills,
@@ -65,15 +69,13 @@ contract LazySoccerNFT is
     )
         external
         override(ILazySoccerNFT)
-        onlyAvailableAddresses
-        onlyUnlocked(firstParrentTokenId)
-        onlyUnlocked(secondParrentTokenId)
+        onlyNftOwner(firstParrentTokenId)
+        onlyNftOwner(secondParrentTokenId)
+        onlyUnlockedForGame(firstParrentTokenId)
+        onlyUnlockedForGame(secondParrentTokenId)
+        onlyUnlockedForMarket(firstParrentTokenId)
+        onlyUnlockedForMarket(secondParrentTokenId)
     {
-        require(
-            _ownerOf(firstParrentTokenId) == to &&
-                _ownerOf(secondParrentTokenId) == to,
-            "Nfts must have 1 owner"
-        );
         require(
             _nftRarity[firstParrentTokenId] == _nftRarity[secondParrentTokenId],
             "Nft must have one rarity"
@@ -82,14 +84,13 @@ contract LazySoccerNFT is
             _nftRarity[firstParrentTokenId] <= StuffNFTRarity.Epic,
             "You can`t breed Legendary nft"
         );
-
         _burnTokenForBreed(firstParrentTokenId);
         _burnTokenForBreed(secondParrentTokenId);
 
         uint256 nftRarity = uint256(_nftRarity[firstParrentTokenId]) + 1;
 
         mint(
-            to,
+            msg.sender,
             childTokenId,
             childNftIpfsHash,
             nftSkills,
@@ -98,7 +99,7 @@ contract LazySoccerNFT is
         );
 
         emit NFTBreeded(
-            to,
+            msg.sender,
             firstParrentTokenId,
             secondParrentTokenId,
             childTokenId
@@ -109,7 +110,7 @@ contract LazySoccerNFT is
         delete _unspentSkills[tokenId];
         delete _nftStats[tokenId];
         delete _nftRarity[tokenId];
-        delete _lockedNft[tokenId];
+        delete _lockedNftForGame[tokenId];
         delete _nonce[tokenId];
 
         _burn(tokenId);
@@ -118,23 +119,18 @@ contract LazySoccerNFT is
     function updateNft(
         uint256 tokenId,
         NftSkills memory changeInTokenSkills
-    ) external override(ILazySoccerNFT) onlyAvailableAddresses {
+    )
+        external
+        override(ILazySoccerNFT)
+        onlyNftOwner(tokenId)
+        onlyUnlockedForGame(tokenId)
+        onlyUnlockedForMarket(tokenId)
+    {
         require(
             changeInTokenSkills.MarketerLVL +
                 changeInTokenSkills.AccountantLVL <=
                 _unspentSkills[tokenId],
             "Scarcity of unspent skills"
-        );
-        require(
-            _nftStats[tokenId].MarketerLVL + changeInTokenSkills.MarketerLVL >
-                0,
-            "Lvl must be more than 0"
-        );
-        require(
-            _nftStats[tokenId].AccountantLVL +
-                changeInTokenSkills.AccountantLVL >
-                0,
-            "Lvl must be more than 0"
         );
 
         _nftStats[tokenId].MarketerLVL += changeInTokenSkills.MarketerLVL;
@@ -150,22 +146,59 @@ contract LazySoccerNFT is
         );
     }
 
-    function lockNft(
+    function lockNftForGame(
         uint256 tokenId
-    ) public override(ILazySoccerNFT) onlyAvailableAddresses {
-        require(_lockedNft[tokenId] == false, "Nft already locked");
-        _lockedNft[tokenId] = true;
+    )
+        public
+        override(ILazySoccerNFT)
+        onlyNftOwner(tokenId)
+        onlyUnlockedForGame(tokenId)
+        onlyUnlockedForMarket(tokenId)
+    {
+        _lockedNftForGame[tokenId] = true;
 
-        emit NFTLocked(tokenId);
+        emit NFTLockedForGame(tokenId);
     }
 
-    function unlockNft(
+    function unlockNftForGame(
         uint256 tokenId
-    ) public override(ILazySoccerNFT) onlyAvailableAddresses {
-        require(_lockedNft[tokenId] == true, "Nft already unlocked");
-        delete _lockedNft[tokenId];
+    ) public override(ILazySoccerNFT) onlyNftOwner(tokenId) {
+        require(_lockedNftForGame[tokenId] == true, "Nft already unlocked");
+        delete _lockedNftForGame[tokenId];
 
-        emit NFTUnlocked(tokenId);
+        emit NFTUnlockedForGame(tokenId);
+    }
+
+    function lockNftForMarket(
+        uint256 tokenId
+    )
+        public
+        override(ILazySoccerNFT)
+        onlyNftOwner(tokenId)
+        onlyUnlockedForGame(tokenId)
+        onlyUnlockedForMarket(tokenId)
+    {
+        if (
+            IERC721(address(this)).isApprovedForAll(
+                msg.sender,
+                ingameMarketAddress
+            ) != true
+        ) {
+            super.setApprovalForAll(ingameMarketAddress, true);
+        }
+
+        _lockedNftForMarket[tokenId] = true;
+
+        emit NFTLockedForMarket(tokenId);
+    }
+
+    function unlockNftForMarket(
+        uint256 tokenId
+    ) public override(ILazySoccerNFT) onlyNftOwner(tokenId) {
+        require(_lockedNftForMarket[tokenId] == true, "Nft already unlocked");
+        delete _lockedNftForMarket[tokenId];
+
+        emit NFTUnlockedForMarket(tokenId);
     }
 
     function getUnspentSkills(
@@ -186,10 +219,16 @@ contract LazySoccerNFT is
         return _nftRarity[tokenId];
     }
 
-    function checkIsNftLocked(
+    function checkIsNftLockedForGame(
         uint256 tokenId
     ) public view override(ILazySoccerNFT) returns (bool) {
-        return _lockedNft[tokenId];
+        return _lockedNftForGame[tokenId];
+    }
+
+    function checkIsNftLockedForMarket(
+        uint256 tokenId
+    ) public view override(ILazySoccerNFT) returns (bool) {
+        return _lockedNftForMarket[tokenId];
     }
 
     function walletOfOwner(
@@ -207,7 +246,7 @@ contract LazySoccerNFT is
         address from,
         address to,
         uint256 tokenId
-    ) public virtual override(ERC721, IERC721) onlyUnlocked(tokenId) {
+    ) public virtual override(ERC721, IERC721) onlyUnlockedForGame(tokenId) {
         super.transferFrom(from, to, tokenId);
     }
 
@@ -215,7 +254,7 @@ contract LazySoccerNFT is
         address from,
         address to,
         uint256 tokenId
-    ) public virtual override(ERC721, IERC721) onlyUnlocked(tokenId) {
+    ) public virtual override(ERC721, IERC721) onlyUnlockedForGame(tokenId) {
         super.safeTransferFrom(from, to, tokenId);
     }
 
@@ -224,14 +263,14 @@ contract LazySoccerNFT is
         address to,
         uint256 tokenId,
         bytes memory data
-    ) public virtual override(ERC721, IERC721) onlyUnlocked(tokenId) {
+    ) public virtual override(ERC721, IERC721) onlyUnlockedForGame(tokenId) {
         super.safeTransferFrom(from, to, tokenId, data);
     }
 
     function approve(
         address to,
         uint256 tokenId
-    ) public virtual override(ERC721, IERC721) onlyUnlocked(tokenId) {
+    ) public virtual override(ERC721, IERC721) onlyUnlockedForGame(tokenId) {
         super.approve(to, tokenId);
     }
 
@@ -242,6 +281,10 @@ contract LazySoccerNFT is
         uint256 batchSize
     ) internal override(ERC721, ERC721Enumerable) {
         super._beforeTokenTransfer(from, to, tokenId, batchSize);
+
+        if (checkIsNftLockedForMarket(tokenId)) {
+            delete _lockedNftForMarket[tokenId];
+        }
     }
 
     function _burn(
@@ -276,6 +319,10 @@ contract LazySoccerNFT is
         _calltransactionAddresses = _newAddresses;
     }
 
+    function changeIngameMarketAddress(address _newAddresse) public onlyOwner {
+        ingameMarketAddress = _newAddresse;
+    }
+
     modifier onlyAvailableAddresses() {
         bool doesListContainElement = false;
         for (uint256 i = 0; i < _calltransactionAddresses.length; i++) {
@@ -289,8 +336,18 @@ contract LazySoccerNFT is
         _;
     }
 
-    modifier onlyUnlocked(uint256 tokenId) {
-        require(!_lockedNft[tokenId], "NFT is locked");
+    modifier onlyNftOwner(uint256 tokenId) {
+        require(_ownerOf(tokenId) == msg.sender, "NFT have any owner");
+        _;
+    }
+
+    modifier onlyUnlockedForGame(uint256 tokenId) {
+        require(!_lockedNftForGame[tokenId], "NFT in game");
+        _;
+    }
+
+    modifier onlyUnlockedForMarket(uint256 tokenId) {
+        require(!_lockedNftForMarket[tokenId], "NFT in market");
         _;
     }
 }
