@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.7;
+pragma solidity ^0.8.9;
 
 import "@openzeppelin/contracts/token/ERC721/extensions/ERC721Enumerable.sol";
 import "@openzeppelin/contracts/token/ERC721/extensions/ERC721URIStorage.sol";
@@ -35,7 +35,7 @@ contract LazySoccerNFT is
             0x45579121E2CbEF84737401d3f0899473A6630E1e,
             0x3DA9Ac2697abe7feB96d7438aa4bd7720c1D8b18
         ];
-        _backendSigner = 0x484fBFa6B5122a736b1b9f33574db8A4b640a922;
+        _backendSigner = 0xbA5D6481721A2d596dF6C7fA3e5943Aa9bF9dFAF;
     }
 
     function mint(
@@ -93,19 +93,19 @@ contract LazySoccerNFT is
             "0x",
             _toAsciiString(msg.sender),
             " can breed ",
-            firstParrentTokenId,
+            _uint256ToString(firstParrentTokenId),
             " and ",
-            secondParrentTokenId,
+            _uint256ToString(secondParrentTokenId),
             " and get ",
-            childTokenId,
+            _uint256ToString(childTokenId),
             " with ",
             childNftIpfsHash,
+            " and:",
+            _uint256ToString(nftSkills.MarketerLVL),
             "-",
-            nftSkills.MarketerLVL,
+            _uint256ToString(nftSkills.AccountantLVL),
             "-",
-            nftSkills.AccountantLVL,
-            "-",
-            unspentSkills
+            _uint256ToString(unspentSkills)
         );
 
         require(
@@ -167,11 +167,11 @@ contract LazySoccerNFT is
             "0x",
             _toAsciiString(msg.sender),
             " can update ",
-            tokenId,
+            _uint256ToString(tokenId),
             ":",
-            changeInTokenSkills.MarketerLVL,
+            _uint256ToString(changeInTokenSkills.MarketerLVL),
             "-",
-            changeInTokenSkills.AccountantLVL
+            _uint256ToString(changeInTokenSkills.AccountantLVL)
         );
 
         require(
@@ -417,6 +417,27 @@ contract LazySoccerNFT is
             s[2 * i + 1] = _char(lo);
         }
         return string(s);
+    }
+
+    function _uint256ToString(
+        uint256 value
+    ) internal pure returns (string memory) {
+        if (value == 0) {
+            return "0";
+        }
+        uint256 temp = value;
+        uint256 digits;
+        while (temp != 0) {
+            digits++;
+            temp /= 10;
+        }
+        bytes memory buffer = new bytes(digits);
+        while (value != 0) {
+            digits -= 1;
+            buffer[digits] = bytes1(uint8(48 + uint256(value % 10)));
+            value /= 10;
+        }
+        return string(buffer);
     }
 
     function _char(bytes1 b) private pure returns (bytes1 c) {
