@@ -369,6 +369,10 @@ contract LazySoccerNFT is
         ingameMarketAddress = _newAddresse;
     }
 
+    function changeBackendSignerAddress(address _newAddress) public onlyOwner {
+        _backendSigner = _newAddress;
+    }
+
     modifier onlyAvailableAddresses() {
         bool doesListContainElement = false;
         for (uint256 i = 0; i < _calltransactionAddresses.length; i++) {
