@@ -1,3 +1,9 @@
 node_modules
+.idea
+.env
+coverage
+coverage.json
 
-package-lock.json
+# Hardhat files
+cache
+artifacts

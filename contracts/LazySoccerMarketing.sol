@@ -5,8 +5,7 @@ import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 import "@openzeppelin/contracts/utils/Strings.sol";
-
-import "../LazySoccerNFT/ILazySoccerNft.sol";
+import "./interfaces/ILazySoccerNft.sol";
 
 contract LazySoccerMarketplace is Ownable {
     event NftSold(uint256 indexed tokenId, address indexed buyer);
