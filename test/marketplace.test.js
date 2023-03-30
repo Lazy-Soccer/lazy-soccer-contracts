@@ -63,7 +63,7 @@ const { ZERO_ADDRESS } = require("../constants/common.constants");
                 assert.equal(feeWallet, ZERO_ADDRESS)
             })
 
-            it('can change fee backend signer', async () => {
+            it('can change backend signer', async () => {
                 await marketplace.changeBackendSigner(ZERO_ADDRESS)
 
                 const backendSigner = await marketplace.backendSigner()
@@ -71,7 +71,7 @@ const { ZERO_ADDRESS } = require("../constants/common.constants");
                 assert.equal(backendSigner, ZERO_ADDRESS)
             })
 
-            it('can change fee currency address', async () => {
+            it('can change currency address', async () => {
                 await marketplace.changeCurrencyAddress(ZERO_ADDRESS)
 
                 const currencyAddress = await marketplace.currencyContract()
@@ -79,7 +79,7 @@ const { ZERO_ADDRESS } = require("../constants/common.constants");
                 assert.equal(currencyAddress, ZERO_ADDRESS)
             })
 
-            it('can change fee nft contract address', async () => {
+            it('can change nft contract address', async () => {
                 await marketplace.changenftContract(ZERO_ADDRESS)
 
                 const nftAddress = await marketplace.nftContract()
@@ -87,7 +87,7 @@ const { ZERO_ADDRESS } = require("../constants/common.constants");
                 assert.equal(nftAddress, ZERO_ADDRESS)
             })
 
-            it('can change fee nft whitelist array', async () => {
+            it('can change nft whitelist array', async () => {
                 await marketplace.changeCallTransactionAddresses([ZERO_ADDRESS])
 
                 const callTransactionWhitelist = await marketplace.callTransactionWhitelist(0)
