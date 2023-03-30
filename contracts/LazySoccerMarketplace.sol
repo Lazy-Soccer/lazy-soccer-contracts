@@ -7,7 +7,7 @@ import "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 import "@openzeppelin/contracts/utils/Strings.sol";
 import "./interfaces/ILazySoccerNft.sol";
 
-    error AlreadyListed(uint256 tokeId);
+    error AlreadyListed(uint256 tokenId);
 
 
 contract LazySoccerMarketplace is Ownable {
@@ -79,7 +79,7 @@ contract LazySoccerMarketplace is Ownable {
     }
 
     function listItem(uint256 tokenId) external {
-        if (listings[tokenId] == address(0)) {
+        if (listings[tokenId] != address(0)) {
             revert AlreadyListed(tokenId);
         }
 
@@ -107,7 +107,7 @@ contract LazySoccerMarketplace is Ownable {
         bytes memory signature
     ) public payable {
         address nftOwner = listings[tokenId];
-        require(nftOwner != address(0), 'NFT is not listed');
+        require(nftOwner == address(0), 'NFT is not listed');
         require(!seenNonce[msg.sender][nonce], 'Used nonce');
 
         bytes32 hash = keccak256(abi.encodePacked(

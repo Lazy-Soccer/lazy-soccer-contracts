@@ -47,7 +47,7 @@ module.exports = {
         currency: 'ETH',
         outputFile: `gas-report.txt`,
         enabled: REPORT_GAS,
-        noColors: false
+        noColors: true
     },
     mocha: {
         timeout: 200000 // 200 seconds max for running tests

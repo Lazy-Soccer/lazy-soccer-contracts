@@ -16,13 +16,17 @@ const { ZERO_ADDRESS } = require("../constants/common.constants");
     describe('Marketplace unit tests', () => {
         let deployer, marketplace, lazySoccer
 
+        async function mintNFT() {
+            await lazySoccer.mint(deployer.address, 0, 'hash', { MarketerLVL: 2, AccountantLVL: 0 }, 10, 0)
+        }
+
         beforeEach(async () => {
             const accounts = await ethers.getSigners()
             deployer = accounts[0]
 
             await deployments.fixture('all')
 
-            lazySoccer = await ethers.getContract('LazySoccerNFT')
+            lazySoccer = (await ethers.getContract('LazySoccerNFT')).connect(deployer)
             marketplace = (await ethers.getContract('LazySoccerMarketplace')).connect(deployer)
         })
 
@@ -93,6 +97,49 @@ const { ZERO_ADDRESS } = require("../constants/common.constants");
                 const callTransactionWhitelist = await marketplace.callTransactionWhitelist(0)
 
                 assert.equal(callTransactionWhitelist, ZERO_ADDRESS)
+            })
+        })
+
+        describe('listing of nft', () => {
+            beforeEach(async () => {
+                await lazySoccer.changeCallTransactionAddresses([deployer.address])
+                await mintNFT()
+            })
+
+            it('can list nft', async () => {
+                await lazySoccer.approve(marketplace.address, 0)
+
+                await marketplace.listItem(0)
+                const listingOwner = await marketplace.listings(0)
+
+                assert.equal(listingOwner, deployer.address)
+            })
+
+            it('rejects when NFT is not approved', async () => {
+                await expect(marketplace.listItem(0)).to.be.reverted
+            })
+
+            it('rejects when NFT is already listed', async () => {
+                await lazySoccer.approve(marketplace.address, 0)
+
+                await marketplace.listItem(0)
+                await expect(marketplace.listItem(0)).to.be.revertedWithCustomError(marketplace, 'AlreadyListed')
+                    .withArgs(0)
+            })
+
+            it('rejects when NFT is already listed', async () => {
+                await lazySoccer.approve(marketplace.address, 0)
+
+                await marketplace.listItem(0)
+                await expect(marketplace.listItem(0)).to.be.revertedWithCustomError(marketplace, 'AlreadyListed')
+                    .withArgs(0)
+            })
+
+            it('emits events on successful listing', async () => {
+                await lazySoccer.approve(marketplace.address, 0)
+
+                await expect(marketplace.listItem(0)).to.emit(marketplace, 'ItemListed')
+                    .withArgs(0, deployer.address)
             })
         })
     })

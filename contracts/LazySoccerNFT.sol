@@ -324,10 +324,10 @@ contract LazySoccerNFT is
 
     modifier onlyAvailableAddresses() {
         bool doesListContainElement = false;
-        address[] memory transactionAddresses = _callTransactionAddresses;
+        uint256 length = _callTransactionAddresses.length;
 
-        for (uint256 i = 0; i < transactionAddresses.length; i++) {
-            if (msg.sender == transactionAddresses[i]) {
+        for (uint256 i = 0; i < length; i++) {
+            if (msg.sender == _callTransactionAddresses[i]) {
                 doesListContainElement = true;
 
                 break;
