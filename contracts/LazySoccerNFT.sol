@@ -1,9 +1,12 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.4;
+pragma solidity ^0.8.9;
 
 import "@openzeppelin/contracts/token/ERC721/extensions/ERC721Enumerable.sol";
 import "@openzeppelin/contracts/token/ERC721/extensions/ERC721URIStorage.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
+import "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
+import "@openzeppelin/contracts/utils/Strings.sol";
+
 import "./interfaces/ILazySoccerNft.sol";
 
 contract LazySoccerNFT is
@@ -18,20 +21,21 @@ contract LazySoccerNFT is
     mapping(uint256 => bool) private _lockedNftForGame;
     mapping(uint256 => bool) private _lockedNftForMarket;
     mapping(uint256 => bool) private _nonce;
-    address[] _callTransactionAddresses;
-    address ingameMarketAddress;
+    address[] private _callTransactionAddresses;
+    address private _backendSigner;
+    address public ingameMarketAddress;
 
     constructor(
         string memory _name,
         string memory _symbol
     ) ERC721(_name, _symbol) {
         ingameMarketAddress = 0x3DA9Ac2697abe7feB96d7438aa4bd7720c1D8b18;
-
         _callTransactionAddresses = [
             0x484fBFa6B5122a736b1b9f33574db8A4b640a922,
             0x45579121E2CbEF84737401d3f0899473A6630E1e,
             0x3DA9Ac2697abe7feB96d7438aa4bd7720c1D8b18
         ];
+        _backendSigner = 0xbA5D6481721A2d596dF6C7fA3e5943Aa9bF9dFAF;
     }
 
     function mint(
@@ -64,7 +68,8 @@ contract LazySoccerNFT is
         uint256 childTokenId,
         string memory childNftIpfsHash,
         NftSkills memory nftSkills,
-        uint256 unspentSkills
+        uint256 unspentSkills,
+        bytes memory signature
     )
         external
         override(ILazySoccerNFT)
@@ -83,10 +88,35 @@ contract LazySoccerNFT is
             _nftRarity[firstParrentTokenId] <= StuffNFTRarity.Epic,
             "You can`t breed Legendary nft"
         );
+
+        bytes memory data = abi.encodePacked(
+            "0x",
+            _toAsciiString(msg.sender),
+            " can breed ",
+            _uint256ToString(firstParrentTokenId),
+            " and ",
+            _uint256ToString(secondParrentTokenId),
+            " and get ",
+            _uint256ToString(childTokenId),
+            " with ",
+            childNftIpfsHash,
+            " and:",
+            _uint256ToString(nftSkills.MarketerLVL),
+            "-",
+            _uint256ToString(nftSkills.AccountantLVL),
+            "-",
+            _uint256ToString(unspentSkills)
+        );
+
+        require(
+            _checkSignOperator(data, signature),
+            "Transaction is not signed"
+        );
+
         _burnTokenForBreed(firstParrentTokenId);
         _burnTokenForBreed(secondParrentTokenId);
 
-        uint256 nftRarity = uint256(_nftRarity[firstParrentTokenId]) + 1;
+        uint8 nftRarity = uint8(_nftRarity[firstParrentTokenId]) + 1;
 
         mint(
             msg.sender,
@@ -117,7 +147,8 @@ contract LazySoccerNFT is
 
     function updateNft(
         uint256 tokenId,
-        NftSkills memory changeInTokenSkills
+        NftSkills memory changeInTokenSkills,
+        bytes memory signature
     )
         external
         override(ILazySoccerNFT)
@@ -130,6 +161,22 @@ contract LazySoccerNFT is
                 changeInTokenSkills.AccountantLVL <=
                 _unspentSkills[tokenId],
             "Scarcity of unspent skills"
+        );
+
+        bytes memory data = abi.encodePacked(
+            "0x",
+            _toAsciiString(msg.sender),
+            " can update ",
+            _uint256ToString(tokenId),
+            ":",
+            _uint256ToString(changeInTokenSkills.MarketerLVL),
+            "-",
+            _uint256ToString(changeInTokenSkills.AccountantLVL)
+        );
+
+        require(
+            _checkSignOperator(data, signature),
+            "Transaction is not signed"
         );
 
         _nftStats[tokenId].MarketerLVL += changeInTokenSkills.MarketerLVL;
@@ -322,6 +369,10 @@ contract LazySoccerNFT is
         ingameMarketAddress = _newAddresse;
     }
 
+    function changeBackendSignerAddress(address _newAddress) public onlyOwner {
+        _backendSigner = _newAddress;
+    }
+
     modifier onlyAvailableAddresses() {
         bool doesListContainElement = false;
         uint256 length = _callTransactionAddresses.length;
@@ -335,6 +386,69 @@ contract LazySoccerNFT is
         }
         require(doesListContainElement, "Not have permission");
         _;
+    }
+
+    function _checkSignOperator(
+        bytes memory data,
+        bytes memory signature
+    ) private view returns (bool) {
+        bytes32 hash = _toEthSignedMessage(data);
+        address signer = ECDSA.recover(hash, signature);
+
+        return signer == _backendSigner;
+    }
+
+    function _toEthSignedMessage(
+        bytes memory message
+    ) internal pure returns (bytes32) {
+        return
+            keccak256(
+                abi.encodePacked(
+                    "\x19Ethereum Signed Message:\n",
+                    Strings.toString(message.length),
+                    message
+                )
+            );
+    }
+
+    function _toAsciiString(address x) internal pure returns (string memory) {
+        bytes memory s = new bytes(40);
+        for (uint256 i = 0; i < 20; i++) {
+            bytes1 b = bytes1(
+                uint8(uint256(uint160(x)) / (2 ** (8 * (19 - i))))
+            );
+            bytes1 hi = bytes1(uint8(b) / 16);
+            bytes1 lo = bytes1(uint8(b) - 16 * uint8(hi));
+            s[2 * i] = _char(hi);
+            s[2 * i + 1] = _char(lo);
+        }
+        return string(s);
+    }
+
+    function _uint256ToString(
+        uint256 value
+    ) internal pure returns (string memory) {
+        if (value == 0) {
+            return "0";
+        }
+        uint256 temp = value;
+        uint256 digits;
+        while (temp != 0) {
+            digits++;
+            temp /= 10;
+        }
+        bytes memory buffer = new bytes(digits);
+        while (value != 0) {
+            digits -= 1;
+            buffer[digits] = bytes1(uint8(48 + uint256(value % 10)));
+            value /= 10;
+        }
+        return string(buffer);
+    }
+
+    function _char(bytes1 b) private pure returns (bytes1 c) {
+        if (uint8(b) < 10) return bytes1(uint8(b) + 0x30);
+        else return bytes1(uint8(b) + 0x57);
     }
 
     modifier onlyNftOwner(uint256 tokenId) {

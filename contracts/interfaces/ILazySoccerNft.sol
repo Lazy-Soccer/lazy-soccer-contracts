@@ -48,12 +48,14 @@ interface ILazySoccerNFT is IERC721 {
         uint256 childTokenId,
         string memory childNftIpfsHash,
         NftSkills memory nftSkills,
-        uint256 unspentSkills
+        uint256 unspentSkills,
+        bytes memory signature
     ) external;
 
     function updateNft(
         uint256 tokenId,
-        NftSkills memory changeInTokenSkills
+        NftSkills memory changeInTokenSkills,
+        bytes memory signature
     ) external;
 
     function lockNftForGame(uint256 tokenId) external;
