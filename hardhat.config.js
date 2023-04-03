@@ -1,5 +1,5 @@
 require('@nomicfoundation/hardhat-toolbox');
-require('hardhat-deploy');
+require('@openzeppelin/hardhat-upgrades');
 require('dotenv').config();
 
 const POLYGON_MAINNET_RPC_URL =

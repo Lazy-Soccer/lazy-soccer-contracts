@@ -1,15 +1,22 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.9;
 
+import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
+import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/security/PausableUpgradeable.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import "@openzeppelin/contracts/access/Ownable.sol";
-import "@openzeppelin/contracts/security/Pausable.sol";
 import "@openzeppelin/contracts/utils/Strings.sol";
 import "./interfaces/ILazySoccerNft.sol";
 
 error AlreadyListed(uint256 tokenId);
 
-contract LazySoccerMarketplace is Ownable, Pausable {
+contract LazySoccerMarketplace is
+    Initializable,
+    UUPSUpgradeable,
+    OwnableUpgradeable,
+    PausableUpgradeable
+{
     enum CurrencyType {
         NATIVE,
         ERC20
@@ -34,20 +41,6 @@ contract LazySoccerMarketplace is Ownable, Pausable {
     );
     event InGameAssetSold(address indexed buyer);
 
-    constructor(
-        ILazySoccerNFT _nftContract,
-        IERC20 _currencyContract,
-        address _feeWallet,
-        address _backendSigner,
-        address[] memory _callTransactionWhitelist
-    ) {
-        nftContract = _nftContract;
-        currencyContract = _currencyContract;
-        feeWallet = _feeWallet;
-        backendSigner = _backendSigner;
-        callTransactionWhitelist = _callTransactionWhitelist;
-    }
-
     modifier onlyAvailableAddresses() {
         bool isValidAddress = false;
         uint256 length = callTransactionWhitelist.length;
@@ -65,6 +58,23 @@ contract LazySoccerMarketplace is Ownable, Pausable {
 
         require(isValidAddress, "No permission");
         _;
+    }
+
+    function initialize(
+        ILazySoccerNFT _nftContract,
+        IERC20 _currencyContract,
+        address _feeWallet,
+        address _backendSigner,
+        address[] memory _callTransactionWhitelist
+    ) public initializer {
+        nftContract = _nftContract;
+        currencyContract = _currencyContract;
+        feeWallet = _feeWallet;
+        backendSigner = _backendSigner;
+        callTransactionWhitelist = _callTransactionWhitelist;
+        __UUPSUpgradeable_init();
+        __Ownable_init();
+        __Pausable_init();
     }
 
     function pause() external onlyOwner {
@@ -130,16 +140,17 @@ contract LazySoccerMarketplace is Ownable, Pausable {
         address nftOwner = listings[tokenId];
         require(nftOwner != address(0), "NFT is not listed");
         require(nftOwner != msg.sender, "You can't buy your own item");
-        require(!seenNonce[msg.sender][nonce], "Used nonce");
+        require(!seenNonce[msg.sender][nonce], "Already used nonce");
 
         bytes32 hash = keccak256(
             abi.encodePacked(
                 "Buy NFT",
+                _toAsciiString(msg.sender),
                 _uint256ToString(tokenId),
                 _uint256ToString(nftPrice),
                 _uint256ToString(fee),
-                _uint256ToString(nonce),
-                _uint256ToString(uint8(currency))
+                _uint256ToString(uint8(currency)),
+                _uint256ToString(nonce)
             )
         );
         require(
@@ -150,18 +161,57 @@ contract LazySoccerMarketplace is Ownable, Pausable {
         seenNonce[msg.sender][nonce] = true;
         delete listings[tokenId];
 
-        _sendFunds(nftOwner, currency, nftPrice, fee);
+        _sendCurrency(nftOwner, currency, nftPrice, fee);
         nftContract.safeTransferFrom(address(this), msg.sender, tokenId);
 
         emit ItemBought(tokenId, msg.sender, nftOwner, nftPrice, currency);
     }
+
+    function buyInGameAsset(
+        uint256 inGameAssetId,
+        uint256 price,
+        uint256 transactionFee,
+        uint256 nonce,
+        CurrencyType currency,
+        address inGameAssetOwner,
+        bytes memory signature
+    ) public payable {
+        require(msg.sender != inGameAssetOwner, "Can't buy own asset");
+        require(!seenNonce[msg.sender][nonce], "Already used nonce");
+
+        bytes memory data = keccak256(
+            abi.encodePacked(
+                "Buy in-game asset",
+                _toAsciiString(msg.sender),
+                _uint256ToString(inGameAssetId),
+                _uint256ToString(uint8(currency)),
+                _uint256ToString(price),
+                _uint256ToString(nonce)
+            )
+        );
+
+        require(
+            _checkSignOperator(data, signature),
+            "Transaction is not signed"
+        );
+
+        seenNonce[msg.sender][nonce] = true;
+
+        _sendCurrency(inGameAssetOwner, currency, price, transactionFee);
+
+        emit InGameAssetSold(msg.sender);
+    }
+
+    function _authorizeUpgrade(
+        address newImplementation
+    ) internal override onlyOwner {}
 
     function _sendFunds(
         address to,
         CurrencyType currency,
         uint256 price,
         uint256 fee
-    ) private {
+    ) internal {
         if (currency == CurrencyType.ERC20) {
             currencyContract.transferFrom(msg.sender, to, price);
             currencyContract.transferFrom(msg.sender, feeWallet, fee);
@@ -179,7 +229,7 @@ contract LazySoccerMarketplace is Ownable, Pausable {
     function _checkSignOperator(
         bytes32 hash,
         bytes memory signature
-    ) private view returns (bool) {
+    ) internal view returns (bool) {
         bytes32 prefixedHashMessage = _toEthSignedMessage(hash);
         (bytes32 r, bytes32 s, uint8 v) = splitSignature(signature);
         address signer = ecrecover(prefixedHashMessage, v, r, s);
@@ -208,11 +258,6 @@ contract LazySoccerMarketplace is Ownable, Pausable {
         return string(s);
     }
 
-    function _char(bytes1 b) private pure returns (bytes1 c) {
-        if (uint8(b) < 10) return bytes1(uint8(b) + 0x30);
-        else return bytes1(uint8(b) + 0x57);
-    }
-
     function _uint256ToString(
         uint256 value
     ) internal pure returns (string memory) {
@@ -234,9 +279,14 @@ contract LazySoccerMarketplace is Ownable, Pausable {
         return string(buffer);
     }
 
+    function _char(bytes1 b) internal pure returns (bytes1 c) {
+        if (uint8(b) < 10) return bytes1(uint8(b) + 0x30);
+        else return bytes1(uint8(b) + 0x57);
+    }
+
     function splitSignature(
         bytes memory sig
-    ) public pure returns (bytes32 r, bytes32 s, uint8 v) {
+    ) internal pure returns (bytes32 r, bytes32 s, uint8 v) {
         require(sig.length == 65, "invalid signature length");
 
         assembly {
