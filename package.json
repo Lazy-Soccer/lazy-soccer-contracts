@@ -1,7 +1,7 @@
 {
   "name": "lazy-soccer-contracts",
   "scripts": {
-    "prettier": "prettier --check \"contracts/**/*.sol\" \"constants/**/*.js\" \"deploy/**/*.js\" \"test/**/*.js\" \"utils/**/*.js\" \"hardhat.config.js\" \"helper-hardhat-config.js\"",
+    "prettier": "prettier --check \"contracts/**/*.sol\" \"constants/**/*.js\" \"scripts/**/*.js\" \"test/**/*.js\" \"utils/**/*.js\" \"hardhat.config.js\" \"helper-hardhat-config.js\"",
     "prettier:fix": "prettier --write \"contracts/**/*.sol\" \"constants/**/*.js\" \"scripts/**/*.js\" \"test/**/*.js\" \"utils/**/*.js\" \"hardhat.config.js\" \"helper-hardhat-config.js\"",
     "solhint": "solhint --config ./.solhint.json contracts/**/*.sol",
     "solhint:fix": "solhint --config ./.solhint.json \"contracts/**/*.sol\" --fix",
