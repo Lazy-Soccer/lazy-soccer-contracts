@@ -7,7 +7,7 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 import "@openzeppelin/contracts/utils/Strings.sol";
 
-import "./ILazySoccerNft.sol";
+import "./interfaces/ILazySoccerNft.sol";
 
 contract LazySoccerNFT is
     ILazySoccerNFT,
@@ -21,7 +21,7 @@ contract LazySoccerNFT is
     mapping(uint256 => bool) private _lockedNftForGame;
     mapping(uint256 => bool) private _lockedNftForMarket;
     mapping(uint256 => bool) private _nonce;
-    address[] private _calltransactionAddresses;
+    address[] private _callTransactionAddresses;
     address private _backendSigner;
     address public ingameMarketAddress;
 
@@ -30,7 +30,7 @@ contract LazySoccerNFT is
         string memory _symbol
     ) ERC721(_name, _symbol) {
         ingameMarketAddress = 0x3DA9Ac2697abe7feB96d7438aa4bd7720c1D8b18;
-        _calltransactionAddresses = [
+        _callTransactionAddresses = [
             0x484fBFa6B5122a736b1b9f33574db8A4b640a922,
             0x45579121E2CbEF84737401d3f0899473A6630E1e,
             0x3DA9Ac2697abe7feB96d7438aa4bd7720c1D8b18
@@ -362,7 +362,7 @@ contract LazySoccerNFT is
     function changeCallTransactionAddresses(
         address[] memory _newAddresses
     ) public onlyOwner {
-        _calltransactionAddresses = _newAddresses;
+        _callTransactionAddresses = _newAddresses;
     }
 
     function changeIngameMarketAddress(address _newAddresse) public onlyOwner {
@@ -375,8 +375,10 @@ contract LazySoccerNFT is
 
     modifier onlyAvailableAddresses() {
         bool doesListContainElement = false;
-        for (uint256 i = 0; i < _calltransactionAddresses.length; i++) {
-            if (msg.sender == _calltransactionAddresses[i]) {
+        uint256 length = _callTransactionAddresses.length;
+
+        for (uint256 i = 0; i < length; i++) {
+            if (msg.sender == _callTransactionAddresses[i]) {
                 doesListContainElement = true;
 
                 break;

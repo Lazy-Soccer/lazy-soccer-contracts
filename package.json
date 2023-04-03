@@ -1,14 +1,23 @@
 {
-  "name": "lazy-soccer-contracts",
-  "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
+  "name": "hardhat-project",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "lint": "solhint 'contracts/*.sol'",
+    "lint:fix": "solhint 'contracts/**/*.sol' --fix",
+    "format": "prettier --write .",
+    "coverage": "hardhat coverage"
   },
-  "author": "",
-  "license": "ISC",
+  "devDependencies": {
+    "@nomicfoundation/hardhat-toolbox": "^2.0.2",
+    "@nomiclabs/hardhat-ethers": "npm:hardhat-deploy-ethers@^0.3.0-beta.13",
+    "@openzeppelin/contracts": "^4.5.0",
+    "ethers": "^5.7.2",
+    "hardhat": "^2.13.0",
+    "hardhat-deploy": "^0.11.25",
+    "prettier": "^2.8.7",
+    "prettier-plugin-solidity": "^1.1.3",
+    "solhint": "^3.4.1"
+  },
   "dependencies": {
-    "@openzeppelin/contracts": "^4.8.2"
+    "dotenv": "^16.0.3"
   }
 }

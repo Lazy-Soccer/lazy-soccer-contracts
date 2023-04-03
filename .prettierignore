@@ -1,0 +1,11 @@
+node_modules
+.idea
+artifacts
+cache
+coverage*
+package.json
+.env
+.*
+README.md
+gas-report.txt
+deployments
