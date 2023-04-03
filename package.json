@@ -1,9 +1,10 @@
 {
-  "name": "hardhat-project",
+  "name": "lazy-soccer-contracts",
   "scripts": {
-    "lint": "solhint 'contracts/*.sol'",
-    "lint:fix": "solhint 'contracts/**/*.sol' --fix",
-    "format": "prettier --write .",
+    "prettier": "prettier --check contracts/**/*.sol",
+    "prettier:fix": "prettier --write \"contracts/**/*.sol\"",
+    "solhint": "solhint --config ./.solhint.json contracts/**/*.sol",
+    "solhint:fix": "solhint --config ./.solhint.json \"contracts/**/*.sol\" --fix",
     "coverage": "hardhat coverage"
   },
   "devDependencies": {
