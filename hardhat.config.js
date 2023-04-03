@@ -14,13 +14,21 @@ module.exports = {
             {
                 version: '0.8.9'
             }
-        ]
+        ],
+        settings: {
+            optimizer: {
+                enabled: true,
+                runs: 200,
+                details: { yul: false }
+            }
+        }
     },
 
     defaultNetwork: 'hardhat',
     networks: {
         hardhat: {
-            chainId: 31337
+            chainId: 31337,
+            allowUnlimitedContractSize: true
         },
         localhost: {
             chainId: 31337

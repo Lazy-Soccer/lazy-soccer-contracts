@@ -1,4 +1,4 @@
-const { STUB_ADDRESS } = require("./common.constants");
+const { STUB_ADDRESS } = require('./common.constants')
 
 const FEE_WALLET = process.env.FEE_WALLET || STUB_ADDRESS
 const BACKEND_SIGNER = process.env.BACKEND_SIGNER || STUB_ADDRESS

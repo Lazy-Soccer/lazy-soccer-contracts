@@ -1,16 +1,15 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.4;
+pragma solidity ^0.8.9;
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
-import "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
+import "@openzeppelin/contracts/security/Pausable.sol";
 import "@openzeppelin/contracts/utils/Strings.sol";
 import "./interfaces/ILazySoccerNft.sol";
 
-    error AlreadyListed(uint256 tokenId);
+error AlreadyListed(uint256 tokenId);
 
-
-contract LazySoccerMarketplace is Ownable {
+contract LazySoccerMarketplace is Ownable, Pausable {
     enum CurrencyType {
         NATIVE,
         ERC20
@@ -22,14 +21,26 @@ contract LazySoccerMarketplace is Ownable {
     address public backendSigner;
     address[] public callTransactionWhitelist;
     mapping(uint256 => address) public listings;
-    mapping(address => mapping(uint256 => bool)) public seenNonce;
+    mapping(address => mapping(uint256 => bool)) private seenNonce;
 
     event ListingCanceled(uint256 indexed tokenId, address indexed seller);
     event ItemListed(uint256 indexed tokenId, address indexed seller);
-    event ItemBought(uint256 indexed tokenId, address indexed buyer, address indexed seller, uint256 price, CurrencyType currency);
+    event ItemBought(
+        uint256 indexed tokenId,
+        address indexed buyer,
+        address indexed seller,
+        uint256 price,
+        CurrencyType currency
+    );
     event InGameAssetSold(address indexed buyer);
 
-    constructor(ILazySoccerNFT _nftContract, IERC20 _currencyContract, address _feeWallet, address _backendSigner, address[] memory _callTransactionWhitelist) {
+    constructor(
+        ILazySoccerNFT _nftContract,
+        IERC20 _currencyContract,
+        address _feeWallet,
+        address _backendSigner,
+        address[] memory _callTransactionWhitelist
+    ) {
         nftContract = _nftContract;
         currencyContract = _currencyContract;
         feeWallet = _feeWallet;
@@ -41,19 +52,27 @@ contract LazySoccerMarketplace is Ownable {
         bool isValidAddress = false;
         uint256 length = callTransactionWhitelist.length;
 
-        for (uint256 i; i < length;) {
+        for (uint256 i; i < length; ) {
             if (msg.sender == callTransactionWhitelist[i]) {
                 isValidAddress = true;
 
                 break;
             }
-        unchecked {
-            ++i;
-        }
+            unchecked {
+                ++i;
+            }
         }
 
         require(isValidAddress, "No permission");
         _;
+    }
+
+    function pause() external onlyOwner {
+        _pause();
+    }
+
+    function unpause() external onlyOwner {
+        _unpause();
     }
 
     function changeCallTransactionAddresses(
@@ -66,7 +85,9 @@ contract LazySoccerMarketplace is Ownable {
         nftContract = _nftContract;
     }
 
-    function changeCurrencyAddress(IERC20 _currencyContract) external onlyOwner {
+    function changeCurrencyAddress(
+        IERC20 _currencyContract
+    ) external onlyOwner {
         currencyContract = _currencyContract;
     }
 
@@ -78,7 +99,7 @@ contract LazySoccerMarketplace is Ownable {
         feeWallet = _feeWallet;
     }
 
-    function listItem(uint256 tokenId) external {
+    function listItem(uint256 tokenId) external whenNotPaused {
         if (listings[tokenId] != address(0)) {
             revert AlreadyListed(tokenId);
         }
@@ -89,8 +110,8 @@ contract LazySoccerMarketplace is Ownable {
         emit ItemListed(tokenId, msg.sender);
     }
 
-    function cancelListing(uint256 tokenId) external {
-        require(listings[tokenId] == msg.sender, 'No access to listing');
+    function cancelListing(uint256 tokenId) external whenNotPaused {
+        require(listings[tokenId] == msg.sender, "No access to listing");
 
         nftContract.safeTransferFrom(address(this), msg.sender, tokenId);
         delete listings[tokenId];
@@ -105,20 +126,22 @@ contract LazySoccerMarketplace is Ownable {
         uint256 nonce,
         CurrencyType currency,
         bytes memory signature
-    ) public payable {
+    ) public payable whenNotPaused {
         address nftOwner = listings[tokenId];
-        require(nftOwner == address(0), 'NFT is not listed');
-        require(!seenNonce[msg.sender][nonce], 'Used nonce');
+        require(nftOwner != address(0), "NFT is not listed");
+        require(nftOwner != msg.sender, "You can't buy your own item");
+        require(!seenNonce[msg.sender][nonce], "Used nonce");
 
-        bytes32 hash = keccak256(abi.encodePacked(
-                'Buy NFT',
-                _toAsciiString(msg.sender),
-                _uint256ToString(nftPrice),
+        bytes32 hash = keccak256(
+            abi.encodePacked(
+                "Buy NFT",
                 _uint256ToString(tokenId),
+                _uint256ToString(nftPrice),
                 _uint256ToString(fee),
-                _uint256ToString(uint8(currency)),
-                _uint256ToString(nonce)
-            ));
+                _uint256ToString(nonce),
+                _uint256ToString(uint8(currency))
+            )
+        );
         require(
             _checkSignOperator(hash, signature),
             "Transaction is not signed"
@@ -128,43 +151,11 @@ contract LazySoccerMarketplace is Ownable {
         delete listings[tokenId];
 
         _sendFunds(nftOwner, currency, nftPrice, fee);
-        nftContract.safeTransferFrom(
-            address(this),
-            msg.sender,
-            tokenId
-        );
+        nftContract.safeTransferFrom(address(this), msg.sender, tokenId);
 
         emit ItemBought(tokenId, msg.sender, nftOwner, nftPrice, currency);
     }
 
-    //
-    //    function buyIngameAsset(
-    //        uint256 inGameAssetId,
-    //        uint256 _price,
-    //        uint256 _transactionFee,
-    //        CurrencyType currency,
-    //        address to,
-    //        bytes memory signature
-    //    ) public payable {
-    //        bytes memory data = abi.encodePacked(
-    //            "0x",
-    //            _toAsciiString(msg.sender),
-    //            " can buy in-game asset ",
-    //            inGameAssetId,
-    //            " price:",
-    //            _price
-    //        );
-    //
-    //        require(
-    //            _checkSignOperator(data, signature),
-    //            "Transaction is not signed"
-    //        );
-    //
-    //        _sendCurrency(to, currency, _price, _transactionFee);
-    //
-    //        emit InGameAssetSold(msg.sender);
-    //    }
-    //
     function _sendFunds(
         address to,
         CurrencyType currency,
@@ -172,26 +163,15 @@ contract LazySoccerMarketplace is Ownable {
         uint256 fee
     ) private {
         if (currency == CurrencyType.ERC20) {
-            currencyContract.transferFrom(
-                msg.sender,
-                to,
-                price
-            );
-            currencyContract.transferFrom(
-                msg.sender,
-                feeWallet,
-                fee
-            );
+            currencyContract.transferFrom(msg.sender, to, price);
+            currencyContract.transferFrom(msg.sender, feeWallet, fee);
         } else {
-            require(
-                msg.value == price + fee,
-                "Insufficient eth value"
-            );
+            require(msg.value == price + fee, "Insufficient eth value");
 
-            (bool success,) = to.call{value : price}("");
+            (bool success, ) = to.call{value: price}("");
             require(success, "Transfer failed");
 
-            (success,) = feeWallet.call{value : fee}("");
+            (success, ) = feeWallet.call{value: fee}("");
             require(success, "Transfer failed");
         }
     }
@@ -200,21 +180,18 @@ contract LazySoccerMarketplace is Ownable {
         bytes32 hash,
         bytes memory signature
     ) private view returns (bool) {
-        bytes32 messageHash = _toEthSignedMessage(hash);
-        address signer = ECDSA.recover(messageHash, signature);
+        bytes32 prefixedHashMessage = _toEthSignedMessage(hash);
+        (bytes32 r, bytes32 s, uint8 v) = splitSignature(signature);
+        address signer = ecrecover(prefixedHashMessage, v, r, s);
 
         return signer == backendSigner;
     }
 
-    function _toEthSignedMessage(
-        bytes32 hash
-    ) internal pure returns (bytes32) {
-        return keccak256(
-            abi.encodePacked(
-                "\x19Ethereum Signed Message:\n",
-                hash
-            )
-        );
+    function _toEthSignedMessage(bytes32 hash) internal view returns (bytes32) {
+        bytes memory prefix = "\x19Ethereum Signed Message:\n32";
+        bytes32 prefixedHashMessage = keccak256(abi.encodePacked(prefix, hash));
+
+        return prefixedHashMessage;
     }
 
     function _toAsciiString(address x) internal pure returns (string memory) {
@@ -255,5 +232,31 @@ contract LazySoccerMarketplace is Ownable {
             value /= 10;
         }
         return string(buffer);
+    }
+
+    function splitSignature(
+        bytes memory sig
+    ) public pure returns (bytes32 r, bytes32 s, uint8 v) {
+        require(sig.length == 65, "invalid signature length");
+
+        assembly {
+            /*
+    First 32 bytes stores the length of the signature
+
+    add(sig, 32) = pointer of sig + 32
+    effectively, skips first 32 bytes of signature
+
+    mload(p) loads next 32 bytes starting at the memory address p into memory
+    */
+
+            // first 32 bytes, after the length prefix
+            r := mload(add(sig, 32))
+            // second 32 bytes
+            s := mload(add(sig, 64))
+            // final byte (first byte of the next 32 bytes)
+            v := byte(0, mload(add(sig, 96)))
+        }
+
+        // implicitly return (r, s, v)
     }
 }
