@@ -7,7 +7,7 @@ import "@openzeppelin/contracts/security/Pausable.sol";
 import "@openzeppelin/contracts/utils/Strings.sol";
 import "./interfaces/ILazySoccerNft.sol";
 
-    error AlreadyListed(uint256 tokenId);
+error AlreadyListed(uint256 tokenId);
 
 contract LazySoccerMarketplace is Ownable, Pausable {
     enum CurrencyType {
@@ -58,9 +58,9 @@ contract LazySoccerMarketplace is Ownable, Pausable {
 
                 break;
             }
-        unchecked {
-            ++i;
-        }
+            unchecked {
+                ++i;
+            }
         }
 
         require(isValidAddress, "No permission");
@@ -240,7 +240,7 @@ contract LazySoccerMarketplace is Ownable, Pausable {
         require(sig.length == 65, "invalid signature length");
 
         assembly {
-        /*
+            /*
 First 32 bytes stores the length of the signature
 
 add(sig, 32) = pointer of sig + 32
@@ -249,11 +249,11 @@ effectively, skips first 32 bytes of signature
 mload(p) loads next 32 bytes starting at the memory address p into memory
 */
 
-        // first 32 bytes, after the length prefix
+            // first 32 bytes, after the length prefix
             r := mload(add(sig, 32))
-        // second 32 bytes
+            // second 32 bytes
             s := mload(add(sig, 64))
-        // final byte (first byte of the next 32 bytes)
+            // final byte (first byte of the next 32 bytes)
             v := byte(0, mload(add(sig, 96)))
         }
 
