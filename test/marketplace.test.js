@@ -1,5 +1,5 @@
 const { assert, expect } = require('chai');
-const { network, deployments, ethers } = require('hardhat');
+const { network, ethers, upgrades } = require('hardhat');
 const { developmentChains } = require('../helper-hardhat-config');
 const {
     CURRENCY_ADDRESS,
@@ -33,13 +33,36 @@ const { ZERO_ADDRESS } = require('../constants/common.constants');
               const accounts = await ethers.getSigners();
               deployer = accounts[0];
 
-              await deployments.fixture('all');
-
-              lazySoccer = (await ethers.getContract('LazySoccerNFT')).connect(
+              const LazySoccerNFT = await ethers.getContractFactory(
+                  'LazySoccerNFT',
+              );
+              const soccerArgs = [
+                  process.env.NFT_NAME || 'NFT',
+                  process.env.NFT_SYMBOL || 'NFT',
+              ];
+              lazySoccer = (await LazySoccerNFT.deploy(...soccerArgs)).connect(
                   deployer,
               );
+
+              const LazySoccerMarketplace = await ethers.getContractFactory(
+                  'LazySoccerMarketplace',
+              );
+              const marketplaceArgs = [
+                  lazySoccer.address,
+                  CURRENCY_ADDRESS,
+                  FEE_WALLET,
+                  BACKEND_SIGNER,
+                  WHITELIST_ADDRESSES,
+              ];
+
               marketplace = (
-                  await ethers.getContract('LazySoccerMarketplace')
+                  await upgrades.deployProxy(
+                      LazySoccerMarketplace,
+                      marketplaceArgs,
+                      {
+                          initializer: 'initialize',
+                      },
+                  )
               ).connect(deployer);
           });
 
@@ -287,13 +310,10 @@ const { ZERO_ADDRESS } = require('../constants/common.constants');
                   await mintNFT();
 
                   await lazySoccer.approve(marketplace.address, 0);
-
-                  await marketplace.listItem(0).to.be.reverted;
-
+                  await marketplace.listItem(0);
                   await marketplace.pause();
 
-                  await expect(await marketplace.cancelListing(0)).to.be
-                      .reverted;
+                  await expect(marketplace.cancelListing(0)).to.be.reverted;
               });
           });
       });
