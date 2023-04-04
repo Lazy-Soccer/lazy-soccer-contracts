@@ -8,6 +8,7 @@ const {
     BACKEND_SIGNER,
 } = require('../constants/marketplace.constants');
 const { ZERO_ADDRESS } = require('../constants/common.constants');
+const { getRandomInt } = require('../utils/math');
 
 !developmentChains.includes(network.name)
     ? describe.skip()
@@ -100,7 +101,7 @@ const { ZERO_ADDRESS } = require('../constants/common.constants');
                   await expect(
                       marketplace.changeCurrencyAddress(attacker.address),
                   ).to.be.reverted;
-                  await expect(marketplace.changenftContract(attacker.address))
+                  await expect(marketplace.changeNftContract(attacker.address))
                       .to.be.reverted;
                   await expect(
                       marketplace.changeCallTransactionAddresses([
@@ -134,7 +135,7 @@ const { ZERO_ADDRESS } = require('../constants/common.constants');
               });
 
               it('can change nft contract address', async () => {
-                  await marketplace.changenftContract(ZERO_ADDRESS);
+                  await marketplace.changeNftContract(ZERO_ADDRESS);
 
                   const nftAddress = await marketplace.nftContract();
 
@@ -238,7 +239,7 @@ const { ZERO_ADDRESS } = require('../constants/common.constants');
 
                   await marketplace.listItem(0);
                   await expect(marketplace.cancelListing(0))
-                      .to.be.emit(marketplace, 'ListingCanceled')
+                      .to.emit(marketplace, 'ListingCanceled')
                       .withArgs(0, deployer.address);
               });
           });
@@ -314,6 +315,150 @@ const { ZERO_ADDRESS } = require('../constants/common.constants');
                   await marketplace.pause();
 
                   await expect(marketplace.cancelListing(0)).to.be.reverted;
+              });
+          });
+
+          describe('buying of NFT/In-game asset', () => {
+              let buyer, buyerAddress, tokenId, nftPrice, fee, currency;
+
+              beforeEach(async () => {
+                  const accounts = await ethers.getSigners();
+                  await marketplace.changeBackendSigner(deployer.address);
+                  buyer = accounts[1];
+                  buyerAddress = buyer.address;
+                  tokenId = 0;
+                  nftPrice = 100;
+                  fee = 5;
+                  currency = 0;
+
+                  await giveWhitelistAccess(deployer.address);
+                  await mintNFT();
+              });
+
+              it('can buy nft', async () => {
+                  await lazySoccer.approve(marketplace.address, tokenId);
+                  await marketplace.listItem(tokenId);
+
+                  const nonce = getRandomInt(0, 1000000000);
+
+                  const hash = ethers.utils.keccak256(
+                      ethers.utils.toUtf8Bytes(
+                          `Buy NFT-${buyerAddress.toLowerCase()}-${tokenId}-${nftPrice}-${fee}-${currency}-${nonce}`,
+                      ),
+                  );
+                  const signature = await deployer.signMessage(
+                      ethers.utils.arrayify(hash),
+                  );
+
+                  const sellerInitBalance = (
+                      await ethers.provider.getBalance(deployer.address)
+                  ).toBigInt();
+
+                  const tx = await marketplace
+                      .connect(buyer)
+                      .buyItem(
+                          tokenId,
+                          nftPrice,
+                          fee,
+                          currency,
+                          nonce,
+                          signature,
+                          { value: fee + nftPrice },
+                      );
+
+                  const newNftOwner = await lazySoccer.ownerOf(tokenId);
+                  const sellerFinalBalance = (
+                      await ethers.provider.getBalance(deployer.address)
+                  ).toBigInt();
+
+                  assert.equal(newNftOwner, buyer.address);
+                  assert.equal(
+                      sellerFinalBalance - sellerInitBalance,
+                      BigInt(nftPrice),
+                  );
+                  expect(tx)
+                      .to.emit(marketplace, 'ItemBought')
+                      .withArgs(
+                          tokenId,
+                          buyerAddress,
+                          newNftOwner,
+                          nftPrice,
+                          currency,
+                      );
+              });
+
+              it('reverts with bad signature', async () => {
+                  await lazySoccer.approve(marketplace.address, tokenId);
+                  await marketplace.listItem(tokenId);
+
+                  const nonce = getRandomInt(0, 1000000000);
+                  const fakeFee = 0;
+
+                  const hash = ethers.utils.keccak256(
+                      ethers.utils.toUtf8Bytes(
+                          `Buy NFT-${buyerAddress.toLowerCase()}-${tokenId}-${nftPrice}-${fee}-${currency}-${nonce}`,
+                      ),
+                  );
+                  const signature = await deployer.signMessage(
+                      ethers.utils.arrayify(hash),
+                  );
+
+                  await expect(
+                      marketplace
+                          .connect(buyer)
+                          .buyItem(
+                              tokenId,
+                              nftPrice,
+                              fakeFee,
+                              currency,
+                              nonce,
+                              signature,
+                              { value: fakeFee + nftPrice },
+                          ),
+                  ).to.be.reverted;
+              });
+
+              it('can buy in-game asset', async () => {
+                  const nonce = getRandomInt(0, 1000000000);
+
+                  const hash = ethers.utils.keccak256(
+                      ethers.utils.toUtf8Bytes(
+                          `Buy in-game asset-${buyerAddress.toLowerCase()}-${deployer.address.toLowerCase()}-${tokenId}-${currency}-${nftPrice}-${fee}-${nonce}`,
+                      ),
+                  );
+
+                  const signature = await deployer.signMessage(
+                      ethers.utils.arrayify(hash),
+                  );
+
+                  const sellerInitBalance = (
+                      await ethers.provider.getBalance(deployer.address)
+                  ).toBigInt();
+
+                  const tx = await marketplace
+                      .connect(buyer)
+                      .buyInGameAsset(
+                          tokenId,
+                          nftPrice,
+                          fee,
+                          nonce,
+                          currency,
+                          deployer.address,
+                          signature,
+                          { value: fee + nftPrice },
+                      );
+
+                  const sellerFinalBalance = (
+                      await ethers.provider.getBalance(deployer.address)
+                  ).toBigInt();
+
+                  assert.equal(
+                      sellerFinalBalance - sellerInitBalance,
+                      BigInt(nftPrice),
+                  );
+                  expect(tx)
+                      .to.emit(marketplace, 'InGameAssetSold')
+                      .withArgs(buyerAddress);
               });
           });
       });

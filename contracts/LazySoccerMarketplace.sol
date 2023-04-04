@@ -91,7 +91,7 @@ contract LazySoccerMarketplace is
         callTransactionWhitelist = _callTransactionWhitelist;
     }
 
-    function changenftContract(ILazySoccerNFT _nftContract) external onlyOwner {
+    function changeNftContract(ILazySoccerNFT _nftContract) external onlyOwner {
         nftContract = _nftContract;
     }
 
@@ -133,8 +133,8 @@ contract LazySoccerMarketplace is
         uint256 tokenId,
         uint256 nftPrice,
         uint256 fee,
-        uint256 nonce,
         CurrencyType currency,
+        uint256 nonce,
         bytes memory signature
     ) public payable whenNotPaused {
         address nftOwner = listings[tokenId];
@@ -144,12 +144,18 @@ contract LazySoccerMarketplace is
 
         bytes32 hash = keccak256(
             abi.encodePacked(
-                "Buy NFT",
+                "Buy NFT-",
+                "0x",
                 _toAsciiString(msg.sender),
+                "-",
                 _uint256ToString(tokenId),
+                "-",
                 _uint256ToString(nftPrice),
+                "-",
                 _uint256ToString(fee),
+                "-",
                 _uint256ToString(uint8(currency)),
+                "-",
                 _uint256ToString(nonce)
             )
         );
@@ -161,7 +167,7 @@ contract LazySoccerMarketplace is
         seenNonce[msg.sender][nonce] = true;
         delete listings[tokenId];
 
-        _sendCurrency(nftOwner, currency, nftPrice, fee);
+        _sendFunds(nftOwner, currency, nftPrice, fee);
         nftContract.safeTransferFrom(address(this), msg.sender, tokenId);
 
         emit ItemBought(tokenId, msg.sender, nftOwner, nftPrice, currency);
@@ -179,25 +185,34 @@ contract LazySoccerMarketplace is
         require(msg.sender != inGameAssetOwner, "Can't buy own asset");
         require(!seenNonce[msg.sender][nonce], "Already used nonce");
 
-        bytes memory data = keccak256(
+        bytes32 hash = keccak256(
             abi.encodePacked(
-                "Buy in-game asset",
+                "Buy in-game asset-",
+                "0x",
                 _toAsciiString(msg.sender),
+                "-",
+                "0x",
+                _toAsciiString(inGameAssetOwner),
+                "-",
                 _uint256ToString(inGameAssetId),
+                "-",
                 _uint256ToString(uint8(currency)),
+                "-",
                 _uint256ToString(price),
+                "-",
+                _uint256ToString(transactionFee),
+                "-",
                 _uint256ToString(nonce)
             )
         );
-
         require(
-            _checkSignOperator(data, signature),
+            _checkSignOperator(hash, signature),
             "Transaction is not signed"
         );
 
         seenNonce[msg.sender][nonce] = true;
 
-        _sendCurrency(inGameAssetOwner, currency, price, transactionFee);
+        _sendFunds(inGameAssetOwner, currency, price, transactionFee);
 
         emit InGameAssetSold(msg.sender);
     }
