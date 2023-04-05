@@ -11,14 +11,14 @@ import "@openzeppelin/contracts/utils/Strings.sol";
 import "./interfaces/ILazySoccerNft.sol";
 import "./utils/SignatureResolver.sol";
 
-    error AlreadyListed(uint256 tokenId);
+error AlreadyListed(uint256 tokenId);
 
 contract LazySoccerMarketplace is
-SignatureResolver,
-Initializable,
-UUPSUpgradeable,
-OwnableUpgradeable,
-PausableUpgradeable
+    SignatureResolver,
+    Initializable,
+    UUPSUpgradeable,
+    OwnableUpgradeable,
+    PausableUpgradeable
 {
     enum CurrencyType {
         NATIVE,
@@ -54,9 +54,9 @@ PausableUpgradeable
 
                 break;
             }
-        unchecked {
-            ++i;
-        }
+            unchecked {
+                ++i;
+            }
         }
 
         require(isValidAddress, "No permission");
