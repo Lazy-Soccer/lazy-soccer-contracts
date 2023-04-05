@@ -15,12 +15,18 @@ const { getRandomInt } = require('../utils/math');
     : describe('Marketplace unit tests', () => {
           let deployer, marketplace, lazySoccer;
 
-          async function mintNFT() {
-              await lazySoccer.mint(
-                  deployer.address,
+          async function mintNFT(address) {
+              await lazySoccer.mintNewNft(
+                  address,
                   0,
                   'hash',
-                  { MarketerLVL: 2, AccountantLVL: 0 },
+                  {
+                      marketerLVL: 0,
+                      accountantLVL: 1,
+                      scoutLVL: 2,
+                      coachLVL: 3,
+                      fitnessTrainerLVL: 4,
+                  },
                   10,
                   0,
               );
@@ -40,6 +46,8 @@ const { getRandomInt } = require('../utils/math');
               const soccerArgs = [
                   process.env.NFT_NAME || 'NFT',
                   process.env.NFT_SYMBOL || 'NFT',
+                  BACKEND_SIGNER,
+                  WHITELIST_ADDRESSES,
               ];
               lazySoccer = (await LazySoccerNFT.deploy(...soccerArgs)).connect(
                   deployer,
@@ -157,7 +165,7 @@ const { getRandomInt } = require('../utils/math');
           describe('listing of nft', () => {
               beforeEach(async () => {
                   await giveWhitelistAccess(deployer.address);
-                  await mintNFT();
+                  await mintNFT(deployer.address);
               });
 
               it('can list nft', async () => {
@@ -212,7 +220,7 @@ const { getRandomInt } = require('../utils/math');
           describe('cancel of listing', () => {
               beforeEach(async () => {
                   await giveWhitelistAccess(deployer.address);
-                  await mintNFT();
+                  await mintNFT(deployer.address);
               });
 
               it('cancels listing', async () => {
@@ -299,7 +307,7 @@ const { getRandomInt } = require('../utils/math');
               it('rejects listing action when paused', async () => {
                   await marketplace.pause();
                   await giveWhitelistAccess(deployer.address);
-                  await mintNFT();
+                  await mintNFT(deployer.address);
 
                   await lazySoccer.approve(marketplace.address, 0);
 
@@ -308,7 +316,7 @@ const { getRandomInt } = require('../utils/math');
 
               it('rejects cancel action when paused', async () => {
                   await giveWhitelistAccess(deployer.address);
-                  await mintNFT();
+                  await mintNFT(deployer.address);
 
                   await lazySoccer.approve(marketplace.address, 0);
                   await marketplace.listItem(0);
@@ -332,7 +340,7 @@ const { getRandomInt } = require('../utils/math');
                   currency = 0;
 
                   await giveWhitelistAccess(deployer.address);
-                  await mintNFT();
+                  await mintNFT(deployer.address);
               });
 
               it('can buy nft', async () => {

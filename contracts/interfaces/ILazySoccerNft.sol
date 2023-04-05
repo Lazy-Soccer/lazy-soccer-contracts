@@ -13,13 +13,14 @@ interface ILazySoccerNFT is IERC721 {
     );
     event NFTUpdated(
         uint256 indexed tokenId,
-        uint256 changeOnMarketerLVL,
-        uint256 changeOnAccountantLVL
+        uint256 marketerLVL,
+        uint256 accountantLVL,
+        uint256 scoutLVL,
+        uint256 coachLVL,
+        uint256 fitnessTrainerLVL
     );
     event NFTLockedForGame(uint256 indexed tokenId);
     event NFTUnlockedForGame(uint256 indexed tokenId);
-    event NFTLockedForMarket(uint256 indexed tokenId);
-    event NFTUnlockedForMarket(uint256 indexed tokenId);
 
     enum StuffNFTRarity {
         Common,
@@ -28,12 +29,26 @@ interface ILazySoccerNFT is IERC721 {
         Epic,
         Legendary
     }
+
     struct NftSkills {
-        uint256 MarketerLVL;
-        uint256 AccountantLVL;
+        uint256 marketerLVL;
+        uint256 accountantLVL;
+        uint256 scoutLVL;
+        uint256 coachLVL;
+        uint256 fitnessTrainerLVL;
     }
 
-    function mint(
+    struct BreedArgs {
+        uint256 firstParentTokenId;
+        uint256 secondParentTokenId;
+        uint256 childTokenId;
+        string childNftIpfsHash;
+        NftSkills nftSkills;
+        uint256 unspentSkills;
+        bytes signature;
+    }
+
+    function mintNewNft(
         address to,
         uint256 tokenId,
         string memory ipfsHash,
@@ -42,45 +57,14 @@ interface ILazySoccerNFT is IERC721 {
         StuffNFTRarity rarity
     ) external;
 
-    function breedNft(
-        uint256 firstParrentTokenId,
-        uint256 secondParrentTokenId,
-        uint256 childTokenId,
-        string memory childNftIpfsHash,
-        NftSkills memory nftSkills,
-        uint256 unspentSkills,
-        bytes memory signature
-    ) external;
+    function breedNft(BreedArgs memory breedArgs) external;
 
     function updateNft(
         uint256 tokenId,
-        NftSkills memory changeInTokenSkills,
-        bytes memory signature
+        NftSkills memory changeInTokenSkills
     ) external;
 
     function lockNftForGame(uint256 tokenId) external;
 
     function unlockNftForGame(uint256 tokenId) external;
-
-    function lockNftForMarket(uint256 tokenId) external;
-
-    function unlockNftForMarket(uint256 tokenId) external;
-
-    function getNftRarity(
-        uint256 tokenId
-    ) external view returns (StuffNFTRarity);
-
-    function getNftStats(
-        uint256 tokenId
-    ) external view returns (NftSkills memory);
-
-    function getUnspentSkills(uint256 tokenId) external view returns (uint256);
-
-    function checkIsNftLockedForGame(
-        uint256 tokenId
-    ) external view returns (bool);
-
-    function checkIsNftLockedForMarket(
-        uint256 tokenId
-    ) external view returns (bool);
 }
