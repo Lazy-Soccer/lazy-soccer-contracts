@@ -7,7 +7,6 @@ import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/security/PausableUpgradeable.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/utils/Strings.sol";
-
 import "./interfaces/ILazySoccerNft.sol";
 import "./utils/SignatureResolver.sol";
 
@@ -137,6 +136,7 @@ contract LazySoccerMarketplace is
         uint256 nftPrice,
         uint256 fee,
         CurrencyType currency,
+        uint256 deadline,
         uint256 nonce,
         bytes memory signature
     ) public payable whenNotPaused {
@@ -144,12 +144,16 @@ contract LazySoccerMarketplace is
         require(nftOwner != address(0), "NFT is not listed");
         require(nftOwner != msg.sender, "You can't buy your own item");
         require(!seenNonce[msg.sender][nonce], "Already used nonce");
+        require(block.timestamp < deadline, "Deadline finished");
 
         bytes32 hash = keccak256(
             abi.encodePacked(
                 "Buy NFT-",
                 "0x",
                 _toAsciiString(msg.sender),
+                "-",
+                "0x",
+                _toAsciiString(nftOwner),
                 "-",
                 _uint256ToString(tokenId),
                 "-",
@@ -158,6 +162,8 @@ contract LazySoccerMarketplace is
                 _uint256ToString(fee),
                 "-",
                 _uint256ToString(uint8(currency)),
+                "-",
+                _uint256ToString(deadline),
                 "-",
                 _uint256ToString(nonce)
             )
@@ -180,6 +186,7 @@ contract LazySoccerMarketplace is
         uint256 inGameAssetId,
         uint256 price,
         uint256 transactionFee,
+        uint256 deadline,
         uint256 nonce,
         CurrencyType currency,
         address inGameAssetOwner,
@@ -187,6 +194,7 @@ contract LazySoccerMarketplace is
     ) public payable {
         require(msg.sender != inGameAssetOwner, "Can't buy own asset");
         require(!seenNonce[msg.sender][nonce], "Already used nonce");
+        require(block.timestamp < deadline, "Deadline finished");
 
         bytes32 hash = keccak256(
             abi.encodePacked(
@@ -204,6 +212,8 @@ contract LazySoccerMarketplace is
                 _uint256ToString(price),
                 "-",
                 _uint256ToString(transactionFee),
+                "-",
+                _uint256ToString(deadline),
                 "-",
                 _uint256ToString(nonce)
             )
