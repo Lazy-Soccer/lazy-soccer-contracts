@@ -36,6 +36,16 @@ const { getRandomInt } = require('../utils/math');
               await lazySoccer.changeCallTransactionAddresses([address]);
           }
 
+          async function getDeadlineTimestamp() {
+              const blockNumBefore = await ethers.provider.getBlockNumber();
+              const blockBefore = await ethers.provider.getBlock(
+                  blockNumBefore,
+              );
+              const timestampBefore = blockBefore.timestamp;
+
+              return timestampBefore + 60;
+          }
+
           beforeEach(async () => {
               const accounts = await ethers.getSigners();
               deployer = accounts[0];
@@ -349,11 +359,14 @@ const { getRandomInt } = require('../utils/math');
 
                   const nonce = getRandomInt(0, 1000000000);
 
+                  const deadline = await getDeadlineTimestamp();
+
                   const hash = ethers.utils.keccak256(
                       ethers.utils.toUtf8Bytes(
-                          `Buy NFT-${buyerAddress.toLowerCase()}-${tokenId}-${nftPrice}-${fee}-${currency}-${nonce}`,
+                          `Buy NFT-${buyerAddress.toLowerCase()}-${deployer.address.toLowerCase()}-${tokenId}-${nftPrice}-${fee}-${currency}-${deadline}-${nonce}`,
                       ),
                   );
+
                   const signature = await deployer.signMessage(
                       ethers.utils.arrayify(hash),
                   );
@@ -369,6 +382,7 @@ const { getRandomInt } = require('../utils/math');
                           nftPrice,
                           fee,
                           currency,
+                          deadline,
                           nonce,
                           signature,
                           { value: fee + nftPrice },
@@ -402,11 +416,14 @@ const { getRandomInt } = require('../utils/math');
                   const nonce = getRandomInt(0, 1000000000);
                   const fakeFee = 0;
 
+                  const deadline = await getDeadlineTimestamp();
+
                   const hash = ethers.utils.keccak256(
                       ethers.utils.toUtf8Bytes(
-                          `Buy NFT-${buyerAddress.toLowerCase()}-${tokenId}-${nftPrice}-${fee}-${currency}-${nonce}`,
+                          `Buy NFT-${buyerAddress.toLowerCase()}-${deployer.address.toLowerCase()}-${tokenId}-${nftPrice}-${fee}-${currency}-${deadline}-${nonce}`,
                       ),
                   );
+
                   const signature = await deployer.signMessage(
                       ethers.utils.arrayify(hash),
                   );
@@ -419,6 +436,7 @@ const { getRandomInt } = require('../utils/math');
                               nftPrice,
                               fakeFee,
                               currency,
+                              deadline,
                               nonce,
                               signature,
                               { value: fakeFee + nftPrice },
@@ -429,9 +447,11 @@ const { getRandomInt } = require('../utils/math');
               it('can buy in-game asset', async () => {
                   const nonce = getRandomInt(0, 1000000000);
 
+                  const deadline = await getDeadlineTimestamp();
+
                   const hash = ethers.utils.keccak256(
                       ethers.utils.toUtf8Bytes(
-                          `Buy in-game asset-${buyerAddress.toLowerCase()}-${deployer.address.toLowerCase()}-${tokenId}-${currency}-${nftPrice}-${fee}-${nonce}`,
+                          `Buy in-game asset-${buyerAddress.toLowerCase()}-${deployer.address.toLowerCase()}-${tokenId}-${currency}-${nftPrice}-${fee}-${deadline}-${nonce}`,
                       ),
                   );
 
@@ -449,6 +469,7 @@ const { getRandomInt } = require('../utils/math');
                           tokenId,
                           nftPrice,
                           fee,
+                          deadline,
                           nonce,
                           currency,
                           deployer.address,

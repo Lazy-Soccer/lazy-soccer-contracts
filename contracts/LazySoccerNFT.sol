@@ -5,7 +5,6 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 import "@openzeppelin/contracts/token/ERC721/extensions/ERC721URIStorage.sol";
 import "@openzeppelin/contracts/token/ERC721/extensions/ERC721Enumerable.sol";
-
 import "./interfaces/ILazySoccerNft.sol";
 import "./utils/SignatureResolver.sol";
 
@@ -156,7 +155,7 @@ contract LazySoccerNFT is
             _checkSignOperator(
                 keccak256(
                     abi.encodePacked(
-                        "Breed NFT"
+                        "Breed NFT-"
                         "0x",
                         _toAsciiString(msg.sender),
                         "-",
