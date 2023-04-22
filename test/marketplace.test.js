@@ -15,10 +15,10 @@ const { getRandomInt } = require('../utils/math');
     : describe('Marketplace unit tests', () => {
           let deployer, marketplace, lazySoccer;
 
-          async function mintNFT(address) {
+          async function mintNFT(address, tokenId = 0) {
               await lazySoccer.mintNewNft(
                   address,
-                  0,
+                  tokenId,
                   'hash',
                   {
                       marketerLVL: 0,
@@ -190,6 +190,26 @@ const { getRandomInt } = require('../utils/math');
                   assert.equal(newNftOwner, marketplace.address);
               });
 
+              it('can list a batch of nfts', async () => {
+                  await mintNFT(deployer.address, 1);
+                  await lazySoccer.approve(marketplace.address, 0);
+                  await lazySoccer.approve(marketplace.address, 1);
+
+                  await marketplace.listBatch([0, 1]);
+
+                  let listingOwner = await marketplace.listings(0);
+                  let newNftOwner = await lazySoccer.ownerOf(0);
+
+                  assert.equal(listingOwner, deployer.address);
+                  assert.equal(newNftOwner, marketplace.address);
+
+                  listingOwner = await marketplace.listings(1);
+                  newNftOwner = await lazySoccer.ownerOf(1);
+
+                  assert.equal(listingOwner, deployer.address);
+                  assert.equal(newNftOwner, marketplace.address);
+              });
+
               it('rejects when NFT is not approved', async () => {
                   await expect(marketplace.listItem(0)).to.be.reverted;
               });
@@ -241,6 +261,28 @@ const { getRandomInt } = require('../utils/math');
 
                   const newListingOwner = await marketplace.listings(0);
                   const newNftOwner = await lazySoccer.ownerOf(0);
+
+                  assert.equal(newListingOwner, ZERO_ADDRESS);
+                  assert.equal(newNftOwner, deployer.address);
+              });
+
+              it('it can cancel batch of listings', async () => {
+                  await mintNFT(deployer.address, 1);
+                  await lazySoccer.approve(marketplace.address, 0);
+                  await lazySoccer.approve(marketplace.address, 1);
+
+                  await marketplace.listItem(0);
+                  await marketplace.listItem(1);
+                  await marketplace.batchCancelListing([0, 1]);
+
+                  let newListingOwner = await marketplace.listings(0);
+                  let newNftOwner = await lazySoccer.ownerOf(0);
+
+                  assert.equal(newListingOwner, ZERO_ADDRESS);
+                  assert.equal(newNftOwner, deployer.address);
+
+                  newListingOwner = await marketplace.listings(1);
+                  newNftOwner = await lazySoccer.ownerOf(1);
 
                   assert.equal(newListingOwner, ZERO_ADDRESS);
                   assert.equal(newNftOwner, deployer.address);
@@ -446,12 +488,13 @@ const { getRandomInt } = require('../utils/math');
 
               it('can buy in-game asset', async () => {
                   const nonce = getRandomInt(0, 1000000000);
+                  const quantity = 10;
 
                   const deadline = await getDeadlineTimestamp();
 
                   const hash = ethers.utils.keccak256(
                       ethers.utils.toUtf8Bytes(
-                          `Buy in-game asset-${buyerAddress.toLowerCase()}-${deployer.address.toLowerCase()}-${tokenId}-${currency}-${nftPrice}-${fee}-${deadline}-${nonce}`,
+                          `Buy in-game asset-${buyerAddress.toLowerCase()}-${deployer.address.toLowerCase()}-${quantity}-${currency}-${nftPrice}-${fee}-${deadline}-${nonce}`,
                       ),
                   );
 
@@ -466,7 +509,7 @@ const { getRandomInt } = require('../utils/math');
                   const tx = await marketplace
                       .connect(buyer)
                       .buyInGameAsset(
-                          tokenId,
+                          quantity,
                           nftPrice,
                           fee,
                           deadline,
@@ -487,7 +530,153 @@ const { getRandomInt } = require('../utils/math');
                   );
                   expect(tx)
                       .to.emit(marketplace, 'InGameAssetSold')
-                      .withArgs(buyerAddress);
+                      .withArgs(buyerAddress, deployer.address, quantity);
+              });
+
+              it('can buy a batch of nfts', async () => {
+                  const secondTokenId = 1;
+                  const nonces = [
+                      getRandomInt(0, 1000000000),
+                      getRandomInt(0, 1000000000),
+                  ];
+                  const tokenIds = [tokenId, secondTokenId];
+                  const prices = [nftPrice, nftPrice];
+                  const fees = [fee, fee];
+                  const owners = [deployer.address, deployer.address];
+
+                  const deadline = await getDeadlineTimestamp();
+
+                  const hashes = [
+                      ethers.utils.keccak256(
+                          ethers.utils.toUtf8Bytes(
+                              `Buy NFT-${buyerAddress.toLowerCase()}-${owners[0].toLowerCase()}-${
+                                  tokenIds[0]
+                              }-${prices[0]}-${
+                                  fees[0]
+                              }-${currency}-${deadline}-${nonces[0]}`,
+                          ),
+                      ),
+                      ethers.utils.keccak256(
+                          ethers.utils.toUtf8Bytes(
+                              `Buy NFT-${buyerAddress.toLowerCase()}-${owners[1].toLowerCase()}-${
+                                  tokenIds[1]
+                              }-${prices[1]}-${
+                                  fees[1]
+                              }-${currency}-${deadline}-${nonces[1]}`,
+                          ),
+                      ),
+                  ];
+                  const signatures = await Promise.all(
+                      hashes.map((hash) =>
+                          deployer.signMessage(ethers.utils.arrayify(hash)),
+                      ),
+                  );
+
+                  await mintNFT(deployer.address, secondTokenId);
+                  await lazySoccer.approve(marketplace.address, tokenId);
+                  await lazySoccer.approve(marketplace.address, secondTokenId);
+                  await marketplace.listItem(tokenId);
+                  await marketplace.listItem(secondTokenId);
+
+                  const tx = await marketplace
+                      .connect(buyer)
+                      .batchBuyItem(
+                          tokenIds,
+                          prices,
+                          fees,
+                          currency,
+                          deadline,
+                          nonces,
+                          signatures,
+                          { value: fees[0] + fees[1] + prices[0] + prices[1] },
+                      );
+
+                  const newNftOwner = await lazySoccer.ownerOf(tokenId);
+                  const secondNewNftOwner = await lazySoccer.ownerOf(
+                      secondTokenId,
+                  );
+
+                  assert.equal(newNftOwner, buyer.address);
+                  assert.equal(secondNewNftOwner, buyer.address);
+
+                  expect(tx)
+                      .to.emit(marketplace, 'ItemBought')
+                      .withArgs(
+                          tokenIds[0],
+                          owners[0],
+                          newNftOwner,
+                          prices[0],
+                          currency,
+                      );
+                  expect(tx)
+                      .to.emit(marketplace, 'ItemBought')
+                      .withArgs(
+                          tokenIds[1],
+                          owners[1],
+                          newNftOwner,
+                          prices[1],
+                          currency,
+                      );
+              });
+
+              it('can buy batch of in-game assets', async () => {
+                  const accounts = await ethers.getSigners();
+                  const nonces = [
+                      getRandomInt(0, 1000000000),
+                      getRandomInt(0, 1000000000),
+                  ];
+                  const quantities = [5, 20];
+                  const prices = [100, 100];
+                  const fees = [fee, fee];
+                  const owners = [accounts[2].address, accounts[3].address];
+
+                  const deadline = await getDeadlineTimestamp();
+
+                  const hashes = [
+                      ethers.utils.keccak256(
+                          ethers.utils.toUtf8Bytes(
+                              `Buy in-game asset-${buyerAddress.toLowerCase()}-${owners[0].toLowerCase()}-${
+                                  quantities[0]
+                              }-${currency}-${prices[0]}-${
+                                  fees[0]
+                              }-${deadline}-${nonces[0]}`,
+                          ),
+                      ),
+                      ethers.utils.keccak256(
+                          ethers.utils.toUtf8Bytes(
+                              `Buy in-game asset-${buyerAddress.toLowerCase()}-${owners[1].toLowerCase()}-${
+                                  quantities[1]
+                              }-${currency}-${prices[1]}-${
+                                  fees[1]
+                              }-${deadline}-${nonces[1]}`,
+                          ),
+                      ),
+                  ];
+                  const signatures = await Promise.all(
+                      hashes.map((hash) =>
+                          deployer.signMessage(ethers.utils.arrayify(hash)),
+                      ),
+                  );
+
+                  const tx = await marketplace
+                      .connect(buyer)
+                      .batchBuyInGameAsset(
+                          quantities,
+                          prices,
+                          fees,
+                          deadline,
+                          nonces,
+                          currency,
+                          owners,
+                          signatures,
+                          { value: fees[0] + fees[1] + prices[0] + prices[1] },
+                      );
+                  expect(tx)
+                      .to.emit(marketplace, 'InGameAssetSold')
+                      .withArgs(buyerAddress, owners[0], quantities[0]);
+                  expect(tx)
+                      .to.emit(marketplace, 'InGameAssetSold')
+                      .withArgs(buyerAddress, owners[1], quantities[1]);
               });
           });
       });
