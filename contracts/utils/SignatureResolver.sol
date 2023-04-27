@@ -6,7 +6,7 @@ abstract contract SignatureResolver {
         bytes32 hash,
         bytes memory signature,
         address backendSigner
-    ) internal view returns (bool) {
+    ) internal pure returns (bool) {
         bytes32 prefixedHashMessage = _toEthSignedMessage(hash);
         (bytes32 r, bytes32 s, uint8 v) = splitSignature(signature);
         address signer = ecrecover(prefixedHashMessage, v, r, s);
@@ -14,7 +14,7 @@ abstract contract SignatureResolver {
         return signer == backendSigner;
     }
 
-    function _toEthSignedMessage(bytes32 hash) internal view returns (bytes32) {
+    function _toEthSignedMessage(bytes32 hash) internal pure returns (bytes32) {
         bytes memory prefix = "\x19Ethereum Signed Message:\n32";
         bytes32 prefixedHashMessage = keccak256(abi.encodePacked(prefix, hash));
 

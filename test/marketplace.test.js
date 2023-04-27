@@ -67,11 +67,11 @@ const { getRandomInt } = require('../utils/math');
                   'LazySoccerMarketplace',
               );
               const marketplaceArgs = [
-                  lazySoccer.address,
                   CURRENCY_ADDRESS,
                   FEE_WALLET,
                   BACKEND_SIGNER,
                   WHITELIST_ADDRESSES,
+                  [lazySoccer.address],
               ];
 
               marketplace = (
@@ -87,14 +87,17 @@ const { getRandomInt } = require('../utils/math');
 
           describe('constructor', () => {
               it('sets starting values correctly', async () => {
-                  const nftAddress = await marketplace.nftContract();
+                  const lazyCollectionAvailable =
+                      await marketplace.availableCollections(
+                          lazySoccer.address,
+                      );
                   const currencyAddress = await marketplace.currencyContract();
                   const feeWallet = await marketplace.feeWallet();
                   const callTransactionWhitelist =
                       await marketplace.callTransactionWhitelist(0);
                   const backendSigner = await marketplace.backendSigner();
 
-                  assert.equal(nftAddress, lazySoccer.address);
+                  assert.equal(lazyCollectionAvailable, true);
                   assert.equal(currencyAddress, CURRENCY_ADDRESS);
                   assert.equal(feeWallet, FEE_WALLET);
                   assert.equal(
@@ -119,7 +122,9 @@ const { getRandomInt } = require('../utils/math');
                   await expect(
                       marketplace.changeCurrencyAddress(attacker.address),
                   ).to.be.reverted;
-                  await expect(marketplace.changeNftContract(attacker.address))
+                  await expect(marketplace.addCollection(lazySoccer.address)).to
+                      .be.reverted;
+                  await expect(marketplace.removeCollection(lazySoccer.address))
                       .to.be.reverted;
                   await expect(
                       marketplace.changeCallTransactionAddresses([
@@ -152,15 +157,29 @@ const { getRandomInt } = require('../utils/math');
                   assert.equal(currencyAddress, ZERO_ADDRESS);
               });
 
-              it('can change nft contract address', async () => {
-                  await marketplace.changeNftContract(ZERO_ADDRESS);
+              it('can add nft collection', async () => {
+                  await marketplace.addCollection(lazySoccer.address);
 
-                  const nftAddress = await marketplace.nftContract();
+                  const collectionAvailable =
+                      await marketplace.availableCollections(
+                          lazySoccer.address,
+                      );
 
-                  assert.equal(nftAddress, ZERO_ADDRESS);
+                  assert.equal(collectionAvailable, true);
               });
 
-              it('can change nft whitelist array', async () => {
+              it('can remove nft collection', async () => {
+                  await marketplace.removeCollection(lazySoccer.address);
+
+                  const collectionAvailable =
+                      await marketplace.availableCollections(
+                          lazySoccer.address,
+                      );
+
+                  assert.equal(collectionAvailable, false);
+              });
+
+              it('can change whitelist addresses array', async () => {
                   await marketplace.changeCallTransactionAddresses([
                       ZERO_ADDRESS,
                   ]);
@@ -181,8 +200,11 @@ const { getRandomInt } = require('../utils/math');
               it('can list nft', async () => {
                   await lazySoccer.approve(marketplace.address, 0);
 
-                  await marketplace.listItem(0);
-                  const listingOwner = await marketplace.listings(0);
+                  await marketplace.listItem(0, lazySoccer.address);
+                  const listingOwner = await marketplace.listings(
+                      lazySoccer.address,
+                      0,
+                  );
 
                   const newNftOwner = await lazySoccer.ownerOf(0);
 
@@ -195,15 +217,21 @@ const { getRandomInt } = require('../utils/math');
                   await lazySoccer.approve(marketplace.address, 0);
                   await lazySoccer.approve(marketplace.address, 1);
 
-                  await marketplace.listBatch([0, 1]);
+                  await marketplace.listBatch([0, 1], lazySoccer.address);
 
-                  let listingOwner = await marketplace.listings(0);
+                  let listingOwner = await marketplace.listings(
+                      lazySoccer.address,
+                      0,
+                  );
                   let newNftOwner = await lazySoccer.ownerOf(0);
 
                   assert.equal(listingOwner, deployer.address);
                   assert.equal(newNftOwner, marketplace.address);
 
-                  listingOwner = await marketplace.listings(1);
+                  listingOwner = await marketplace.listings(
+                      lazySoccer.address,
+                      1,
+                  );
                   newNftOwner = await lazySoccer.ownerOf(1);
 
                   assert.equal(listingOwner, deployer.address);
@@ -211,26 +239,15 @@ const { getRandomInt } = require('../utils/math');
               });
 
               it('rejects when NFT is not approved', async () => {
-                  await expect(marketplace.listItem(0)).to.be.reverted;
+                  await expect(marketplace.listItem(0, lazySoccer.address)).to
+                      .be.reverted;
               });
 
               it('rejects when NFT is already listed', async () => {
                   await lazySoccer.approve(marketplace.address, 0);
 
-                  await marketplace.listItem(0);
-                  await expect(marketplace.listItem(0))
-                      .to.be.revertedWithCustomError(
-                          marketplace,
-                          'AlreadyListed',
-                      )
-                      .withArgs(0);
-              });
-
-              it('rejects when NFT is already listed', async () => {
-                  await lazySoccer.approve(marketplace.address, 0);
-
-                  await marketplace.listItem(0);
-                  await expect(marketplace.listItem(0))
+                  await marketplace.listItem(0, lazySoccer.address);
+                  await expect(marketplace.listItem(0, lazySoccer.address))
                       .to.be.revertedWithCustomError(
                           marketplace,
                           'AlreadyListed',
@@ -241,9 +258,9 @@ const { getRandomInt } = require('../utils/math');
               it('emits events on successful listing', async () => {
                   await lazySoccer.approve(marketplace.address, 0);
 
-                  await expect(marketplace.listItem(0))
+                  await expect(marketplace.listItem(0, lazySoccer.address))
                       .to.emit(marketplace, 'ItemListed')
-                      .withArgs(0, deployer.address);
+                      .withArgs(0, deployer.address, lazySoccer.address);
               });
           });
 
@@ -256,10 +273,13 @@ const { getRandomInt } = require('../utils/math');
               it('cancels listing', async () => {
                   await lazySoccer.approve(marketplace.address, 0);
 
-                  await marketplace.listItem(0);
-                  await marketplace.cancelListing(0);
+                  await marketplace.listItem(0, lazySoccer.address);
+                  await marketplace.cancelListing(0, lazySoccer.address);
 
-                  const newListingOwner = await marketplace.listings(0);
+                  const newListingOwner = await marketplace.listings(
+                      lazySoccer.address,
+                      0,
+                  );
                   const newNftOwner = await lazySoccer.ownerOf(0);
 
                   assert.equal(newListingOwner, ZERO_ADDRESS);
@@ -271,17 +291,26 @@ const { getRandomInt } = require('../utils/math');
                   await lazySoccer.approve(marketplace.address, 0);
                   await lazySoccer.approve(marketplace.address, 1);
 
-                  await marketplace.listItem(0);
-                  await marketplace.listItem(1);
-                  await marketplace.batchCancelListing([0, 1]);
+                  await marketplace.listItem(0, lazySoccer.address);
+                  await marketplace.listItem(1, lazySoccer.address);
+                  await marketplace.batchCancelListing(
+                      [0, 1],
+                      lazySoccer.address,
+                  );
 
-                  let newListingOwner = await marketplace.listings(0);
+                  let newListingOwner = await marketplace.listings(
+                      lazySoccer.address,
+                      0,
+                  );
                   let newNftOwner = await lazySoccer.ownerOf(0);
 
                   assert.equal(newListingOwner, ZERO_ADDRESS);
                   assert.equal(newNftOwner, deployer.address);
 
-                  newListingOwner = await marketplace.listings(1);
+                  newListingOwner = await marketplace.listings(
+                      lazySoccer.address,
+                      1,
+                  );
                   newNftOwner = await lazySoccer.ownerOf(1);
 
                   assert.equal(newListingOwner, ZERO_ADDRESS);
@@ -291,16 +320,17 @@ const { getRandomInt } = require('../utils/math');
               it('rejects when no listing found', async () => {
                   await lazySoccer.approve(marketplace.address, 0);
 
-                  await expect(marketplace.cancelListing(0)).to.be.reverted;
+                  await expect(marketplace.cancelListing(0, lazySoccer.address))
+                      .to.be.reverted;
               });
 
               it('emits cancel event', async () => {
                   await lazySoccer.approve(marketplace.address, 0);
 
-                  await marketplace.listItem(0);
-                  await expect(marketplace.cancelListing(0))
+                  await marketplace.listItem(0, lazySoccer.address);
+                  await expect(marketplace.cancelListing(0, lazySoccer.address))
                       .to.emit(marketplace, 'ListingCanceled')
-                      .withArgs(0, deployer.address);
+                      .withArgs(0, deployer.address, lazySoccer.address);
               });
           });
 
@@ -363,7 +393,8 @@ const { getRandomInt } = require('../utils/math');
 
                   await lazySoccer.approve(marketplace.address, 0);
 
-                  await expect(marketplace.listItem(0)).to.be.reverted;
+                  await expect(marketplace.listItem(0, lazySoccer.address)).to
+                      .be.reverted;
               });
 
               it('rejects cancel action when paused', async () => {
@@ -371,10 +402,11 @@ const { getRandomInt } = require('../utils/math');
                   await mintNFT(deployer.address);
 
                   await lazySoccer.approve(marketplace.address, 0);
-                  await marketplace.listItem(0);
+                  await marketplace.listItem(0, lazySoccer.address);
                   await marketplace.pause();
 
-                  await expect(marketplace.cancelListing(0)).to.be.reverted;
+                  await expect(marketplace.cancelListing(0, lazySoccer.address))
+                      .to.be.reverted;
               });
           });
 
@@ -397,7 +429,7 @@ const { getRandomInt } = require('../utils/math');
 
               it('can buy nft', async () => {
                   await lazySoccer.approve(marketplace.address, tokenId);
-                  await marketplace.listItem(tokenId);
+                  await marketplace.listItem(tokenId, lazySoccer.address);
 
                   const nonce = getRandomInt(0, 1000000000);
 
@@ -405,7 +437,7 @@ const { getRandomInt } = require('../utils/math');
 
                   const hash = ethers.utils.keccak256(
                       ethers.utils.toUtf8Bytes(
-                          `Buy NFT-${buyerAddress.toLowerCase()}-${deployer.address.toLowerCase()}-${tokenId}-${nftPrice}-${fee}-${currency}-${deadline}-${nonce}`,
+                          `Buy NFT-${buyerAddress.toLowerCase()}-${deployer.address.toLowerCase()}-${lazySoccer.address.toLowerCase()}-${tokenId}-${nftPrice}-${fee}-${currency}-${deadline}-${nonce}`,
                       ),
                   );
 
@@ -421,6 +453,7 @@ const { getRandomInt } = require('../utils/math');
                       .connect(buyer)
                       .buyItem(
                           tokenId,
+                          lazySoccer.address,
                           nftPrice,
                           fee,
                           currency,
@@ -446,6 +479,7 @@ const { getRandomInt } = require('../utils/math');
                           tokenId,
                           buyerAddress,
                           newNftOwner,
+                          lazySoccer.address,
                           nftPrice,
                           currency,
                       );
@@ -453,7 +487,7 @@ const { getRandomInt } = require('../utils/math');
 
               it('reverts with bad signature', async () => {
                   await lazySoccer.approve(marketplace.address, tokenId);
-                  await marketplace.listItem(tokenId);
+                  await marketplace.listItem(tokenId, lazySoccer.address);
 
                   const nonce = getRandomInt(0, 1000000000);
                   const fakeFee = 0;
@@ -462,7 +496,7 @@ const { getRandomInt } = require('../utils/math');
 
                   const hash = ethers.utils.keccak256(
                       ethers.utils.toUtf8Bytes(
-                          `Buy NFT-${buyerAddress.toLowerCase()}-${deployer.address.toLowerCase()}-${tokenId}-${nftPrice}-${fee}-${currency}-${deadline}-${nonce}`,
+                          `Buy NFT-${buyerAddress.toLowerCase()}-${deployer.address.toLowerCase()}-${lazySoccer.address.toLowerCase()}-${tokenId}-${nftPrice}-${fee}-${currency}-${deadline}-${nonce}`,
                       ),
                   );
 
@@ -475,6 +509,7 @@ const { getRandomInt } = require('../utils/math');
                           .connect(buyer)
                           .buyItem(
                               tokenId,
+                              lazySoccer.address,
                               nftPrice,
                               fakeFee,
                               currency,
@@ -549,7 +584,7 @@ const { getRandomInt } = require('../utils/math');
                   const hashes = [
                       ethers.utils.keccak256(
                           ethers.utils.toUtf8Bytes(
-                              `Buy NFT-${buyerAddress.toLowerCase()}-${owners[0].toLowerCase()}-${
+                              `Buy NFT-${buyerAddress.toLowerCase()}-${owners[0].toLowerCase()}-${lazySoccer.address.toLowerCase()}-${
                                   tokenIds[0]
                               }-${prices[0]}-${
                                   fees[0]
@@ -558,7 +593,7 @@ const { getRandomInt } = require('../utils/math');
                       ),
                       ethers.utils.keccak256(
                           ethers.utils.toUtf8Bytes(
-                              `Buy NFT-${buyerAddress.toLowerCase()}-${owners[1].toLowerCase()}-${
+                              `Buy NFT-${buyerAddress.toLowerCase()}-${owners[1].toLowerCase()}-${lazySoccer.address.toLowerCase()}-${
                                   tokenIds[1]
                               }-${prices[1]}-${
                                   fees[1]
@@ -575,8 +610,8 @@ const { getRandomInt } = require('../utils/math');
                   await mintNFT(deployer.address, secondTokenId);
                   await lazySoccer.approve(marketplace.address, tokenId);
                   await lazySoccer.approve(marketplace.address, secondTokenId);
-                  await marketplace.listItem(tokenId);
-                  await marketplace.listItem(secondTokenId);
+                  await marketplace.listItem(tokenId, lazySoccer.address);
+                  await marketplace.listItem(secondTokenId, lazySoccer.address);
 
                   const tx = await marketplace
                       .connect(buyer)
@@ -585,6 +620,7 @@ const { getRandomInt } = require('../utils/math');
                           prices,
                           fees,
                           currency,
+                          lazySoccer.address,
                           deadline,
                           nonces,
                           signatures,
@@ -605,6 +641,7 @@ const { getRandomInt } = require('../utils/math');
                           tokenIds[0],
                           owners[0],
                           newNftOwner,
+                          lazySoccer.address,
                           prices[0],
                           currency,
                       );
@@ -614,6 +651,7 @@ const { getRandomInt } = require('../utils/math');
                           tokenIds[1],
                           owners[1],
                           newNftOwner,
+                          lazySoccer.address,
                           prices[1],
                           currency,
                       );
