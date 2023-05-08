@@ -11,11 +11,15 @@ async function main() {
         'LazySoccerMarketplace',
     );
     const args = [
-        process.env.SOCCER_NFT_ADDRESS,
         CURRENCY_ADDRESS,
         FEE_WALLET,
         BACKEND_SIGNER,
         WHITELIST_ADDRESSES,
+        [
+            process.env.LAZY_STAFF_ADDRESS,
+            process.env.LAZY_BOXES_ADDRESS,
+            process.env.LAZY_ALPHA_ADDRESS,
+        ],
     ];
     console.log('Deploying Marketplace...');
 

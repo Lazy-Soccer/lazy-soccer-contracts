@@ -51,7 +51,7 @@ const { getRandomInt } = require('../utils/math');
               deployer = accounts[0];
 
               const LazySoccerNFT = await ethers.getContractFactory(
-                  'LazySoccerNFT',
+                  'LazyStaff',
               );
               const soccerArgs = [
                   process.env.NFT_NAME || 'NFT',

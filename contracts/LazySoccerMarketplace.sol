@@ -7,7 +7,7 @@ import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/security/PausableUpgradeable.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/utils/Strings.sol";
-import "./interfaces/ILazySoccerNft.sol";
+import "./interfaces/ILazyStaff.sol";
 import "./utils/SignatureResolver.sol";
 
 error AlreadyListed(uint256 tokenId);
@@ -53,7 +53,7 @@ contract LazySoccerMarketplace is
     event InGameAssetSold(
         address indexed buyer,
         address indexed inGameAssetOwner,
-        uint256 assetId
+        uint256 transferId
     );
 
     modifier onlyAvailableAddresses() {
@@ -210,7 +210,7 @@ contract LazySoccerMarketplace is
     }
 
     function buyInGameAsset(
-        uint256 quantity,
+        uint256 transferId,
         uint256 price,
         uint256 transactionFee,
         uint256 deadline,
@@ -220,7 +220,7 @@ contract LazySoccerMarketplace is
         bytes memory signature
     ) external payable whenNotPaused {
         _buyInGameAsset(
-            quantity,
+            transferId,
             price,
             transactionFee,
             deadline,
@@ -276,7 +276,7 @@ contract LazySoccerMarketplace is
     }
 
     function batchBuyInGameAsset(
-        uint256[] calldata quantities,
+        uint256[] calldata transferIds,
         uint256[] calldata prices,
         uint256[] calldata transactionFees,
         uint256 deadline,
@@ -286,11 +286,11 @@ contract LazySoccerMarketplace is
         bytes[] memory signatures
     ) external payable whenNotPaused {
         require(
-            quantities.length == prices.length &&
-                quantities.length == transactionFees.length &&
-                quantities.length == nonces.length &&
-                quantities.length == inGameAssetOwners.length &&
-                quantities.length == signatures.length
+            transferIds.length == prices.length &&
+                transferIds.length == transactionFees.length &&
+                transferIds.length == nonces.length &&
+                transferIds.length == inGameAssetOwners.length &&
+                transferIds.length == signatures.length
         );
 
         if (currency == CurrencyType.NATIVE) {
@@ -301,11 +301,11 @@ contract LazySoccerMarketplace is
             );
         }
 
-        uint256 length = quantities.length;
+        uint256 length = transferIds.length;
 
         for (uint256 i; i < length; ) {
             _buyInGameAsset(
-                quantities[i],
+                transferIds[i],
                 prices[i],
                 transactionFees[i],
                 deadline,
@@ -412,7 +412,7 @@ contract LazySoccerMarketplace is
     }
 
     function _buyInGameAsset(
-        uint256 quantity,
+        uint256 transferId,
         uint256 price,
         uint256 transactionFee,
         uint256 deadline,
@@ -434,7 +434,7 @@ contract LazySoccerMarketplace is
                 "0x",
                 _toAsciiString(inGameAssetOwner),
                 "-",
-                _uint256ToString(quantity),
+                _uint256ToString(transferId),
                 "-",
                 _uint256ToString(uint8(currency)),
                 "-",
@@ -456,7 +456,7 @@ contract LazySoccerMarketplace is
 
         _sendFunds(inGameAssetOwner, currency, price, transactionFee);
 
-        emit InGameAssetSold(msg.sender, inGameAssetOwner, quantity);
+        emit InGameAssetSold(msg.sender, inGameAssetOwner, transferId);
     }
 
     function _listItem(uint256 tokenId, address collection) private {
