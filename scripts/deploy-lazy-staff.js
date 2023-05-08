@@ -6,12 +6,7 @@ const {
 
 async function main() {
     const LazyStaff = await ethers.getContractFactory('LazyStaff');
-    const args = [
-        'Lazy Staff',
-        'LS',
-        BACKEND_SIGNER,
-        WHITELIST_ADDRESSES,
-    ];
+    const args = ['Lazy Staff', 'LS', BACKEND_SIGNER, WHITELIST_ADDRESSES];
     console.log('Deploying LazyStaff...');
 
     const lazyStaff = await LazyStaff.deploy(...args);

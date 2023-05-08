@@ -287,10 +287,10 @@ contract LazySoccerMarketplace is
     ) external payable whenNotPaused {
         require(
             transferIds.length == prices.length &&
-            transferIds.length == transactionFees.length &&
-            transferIds.length == nonces.length &&
-            transferIds.length == inGameAssetOwners.length &&
-            transferIds.length == signatures.length
+                transferIds.length == transactionFees.length &&
+                transferIds.length == nonces.length &&
+                transferIds.length == inGameAssetOwners.length &&
+                transferIds.length == signatures.length
         );
 
         if (currency == CurrencyType.NATIVE) {

@@ -15,7 +15,11 @@ async function main() {
         FEE_WALLET,
         BACKEND_SIGNER,
         WHITELIST_ADDRESSES,
-        [process.env.LAZY_STAFF_ADDRESS, process.env.LAZY_BOXES_ADDRESS, process.env.LAZY_ALPHA_ADDRESS],
+        [
+            process.env.LAZY_STAFF_ADDRESS,
+            process.env.LAZY_BOXES_ADDRESS,
+            process.env.LAZY_ALPHA_ADDRESS,
+        ],
     ];
     console.log('Deploying Marketplace...');
 
