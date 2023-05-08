@@ -3,7 +3,7 @@ pragma solidity ^0.8.4;
 
 import "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 
-interface ILazySoccerNFT is IERC721 {
+interface ILazyStaff is IERC721 {
     event NewNFTMinted(address to, string ipfsHash, uint256 indexed tokenId);
     event NFTBreeded(
         address to,
@@ -13,6 +13,7 @@ interface ILazySoccerNFT is IERC721 {
     );
     event NFTUpdated(
         uint256 indexed tokenId,
+        uint256 unspentSkills,
         uint256 marketerLVL,
         uint256 accountantLVL,
         uint256 scoutLVL,

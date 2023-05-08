@@ -38,7 +38,7 @@ const { ZERO_ADDRESS } = require('../constants/common.constants');
               deployer = accounts[0];
 
               const LazySoccerNFT = await ethers.getContractFactory(
-                  'LazySoccerNFT',
+                  'LazyStaff',
               );
               const soccerArgs = [
                   process.env.NFT_NAME || 'NFT',

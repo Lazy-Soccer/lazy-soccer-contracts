@@ -5,11 +5,11 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 import "@openzeppelin/contracts/token/ERC721/extensions/ERC721URIStorage.sol";
 import "@openzeppelin/contracts/token/ERC721/extensions/ERC721Enumerable.sol";
-import "./interfaces/ILazySoccerNft.sol";
+import "./interfaces/ILazyStaff.sol";
 import "./utils/SignatureResolver.sol";
 
-contract LazySoccerNFT is
-    ILazySoccerNFT,
+contract LazyStaff is
+    ILazyStaff,
     SignatureResolver,
     ERC721Enumerable,
     ERC721URIStorage,
@@ -94,6 +94,7 @@ contract LazySoccerNFT is
 
         emit NFTUpdated(
             tokenId,
+            unspentSkills[tokenId],
             changeInTokenSkills.marketerLVL,
             changeInTokenSkills.accountantLVL,
             changeInTokenSkills.scoutLVL,
