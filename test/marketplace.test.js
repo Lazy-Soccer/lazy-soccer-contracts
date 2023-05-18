@@ -33,7 +33,7 @@ const { getRandomInt } = require('../utils/math');
           }
 
           async function giveWhitelistAccess(address) {
-              await lazySoccer.changeCallTransactionAddresses([address]);
+              await lazySoccer.changeWhitelistAddresses([address]);
           }
 
           async function getDeadlineTimestamp() {
@@ -53,12 +53,7 @@ const { getRandomInt } = require('../utils/math');
               const LazySoccerNFT = await ethers.getContractFactory(
                   'LazyStaff',
               );
-              const soccerArgs = [
-                  process.env.NFT_NAME || 'NFT',
-                  process.env.NFT_SYMBOL || 'NFT',
-                  BACKEND_SIGNER,
-                  WHITELIST_ADDRESSES,
-              ];
+              const soccerArgs = [BACKEND_SIGNER, WHITELIST_ADDRESSES];
               lazySoccer = (await LazySoccerNFT.deploy(...soccerArgs)).connect(
                   deployer,
               );
@@ -70,7 +65,6 @@ const { getRandomInt } = require('../utils/math');
                   CURRENCY_ADDRESS,
                   FEE_WALLET,
                   BACKEND_SIGNER,
-                  WHITELIST_ADDRESSES,
                   [lazySoccer.address],
               ];
 
@@ -93,17 +87,12 @@ const { getRandomInt } = require('../utils/math');
                       );
                   const currencyAddress = await marketplace.currencyContract();
                   const feeWallet = await marketplace.feeWallet();
-                  const callTransactionWhitelist =
-                      await marketplace.callTransactionWhitelist(0);
+
                   const backendSigner = await marketplace.backendSigner();
 
                   assert.equal(lazyCollectionAvailable, true);
                   assert.equal(currencyAddress, CURRENCY_ADDRESS);
                   assert.equal(feeWallet, FEE_WALLET);
-                  assert.equal(
-                      callTransactionWhitelist,
-                      WHITELIST_ADDRESSES[0],
-                  );
                   assert.equal(backendSigner, BACKEND_SIGNER);
               });
           });
@@ -126,11 +115,6 @@ const { getRandomInt } = require('../utils/math');
                       .be.reverted;
                   await expect(marketplace.removeCollection(lazySoccer.address))
                       .to.be.reverted;
-                  await expect(
-                      marketplace.changeCallTransactionAddresses([
-                          attacker.address,
-                      ]),
-                  ).to.be.reverted;
               });
 
               it('can change fee wallet', async () => {
@@ -177,17 +161,6 @@ const { getRandomInt } = require('../utils/math');
                       );
 
                   assert.equal(collectionAvailable, false);
-              });
-
-              it('can change whitelist addresses array', async () => {
-                  await marketplace.changeCallTransactionAddresses([
-                      ZERO_ADDRESS,
-                  ]);
-
-                  const callTransactionWhitelist =
-                      await marketplace.callTransactionWhitelist(0);
-
-                  assert.equal(callTransactionWhitelist, ZERO_ADDRESS);
               });
           });
 

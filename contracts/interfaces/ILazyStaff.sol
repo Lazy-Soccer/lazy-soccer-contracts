@@ -20,8 +20,6 @@ interface ILazyStaff is IERC721 {
         uint256 coachLVL,
         uint256 fitnessTrainerLVL
     );
-    event NFTLockedForGame(uint256 indexed tokenId);
-    event NFTUnlockedForGame(uint256 indexed tokenId);
 
     enum StuffNFTRarity {
         Common,
@@ -64,8 +62,4 @@ interface ILazyStaff is IERC721 {
         uint256 tokenId,
         NftSkills memory changeInTokenSkills
     ) external;
-
-    function lockNftForGame(uint256 tokenId) external;
-
-    function unlockNftForGame(uint256 tokenId) external;
 }

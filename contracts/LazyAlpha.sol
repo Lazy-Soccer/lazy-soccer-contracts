@@ -5,39 +5,16 @@ import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 import "@openzeppelin/contracts/token/ERC721/extensions/ERC721Enumerable.sol";
 import "@openzeppelin/contracts/token/ERC721/extensions/ERC721URIStorage.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
+import "./utils/NftLock.sol";
 
-contract LazyAlpha is ERC721, ERC721Enumerable, ERC721URIStorage, Ownable {
-    mapping(uint256 => bool) public lockedNftForGame;
-
-    event NFTLockedForGame(uint256 indexed tokenId);
-    event NFTUnlockedForGame(uint256 indexed tokenId);
-
+contract LazyAlpha is
+    ERC721,
+    NftLock,
+    ERC721Enumerable,
+    ERC721URIStorage,
+    Ownable
+{
     constructor() ERC721("Lazy Alpha", "LA") {}
-
-    modifier onlyUnlockedForGame(uint256 tokenId) {
-        require(!lockedNftForGame[tokenId], "NFT is locked in game");
-        _;
-    }
-
-    modifier onlyNftOwner(uint256 tokenId) {
-        require(_ownerOf(tokenId) == msg.sender, "Not NFT owner");
-        _;
-    }
-
-    function lockNftForGame(
-        uint256 tokenId
-    ) external onlyNftOwner(tokenId) onlyUnlockedForGame(tokenId) {
-        lockedNftForGame[tokenId] = true;
-
-        emit NFTLockedForGame(tokenId);
-    }
-
-    function unlockNftForGame(uint256 tokenId) external onlyNftOwner(tokenId) {
-        require(lockedNftForGame[tokenId], "Nft is unlocked");
-        delete lockedNftForGame[tokenId];
-
-        emit NFTUnlockedForGame(tokenId);
-    }
 
     function mintBatch(
         address to,
@@ -62,7 +39,7 @@ contract LazyAlpha is ERC721, ERC721Enumerable, ERC721URIStorage, Ownable {
         address from,
         address to,
         uint256 tokenId
-    ) public virtual override onlyUnlockedForGame(tokenId) {
+    ) public virtual override unlockedForGame(tokenId) {
         super.transferFrom(from, to, tokenId);
     }
 
@@ -70,7 +47,7 @@ contract LazyAlpha is ERC721, ERC721Enumerable, ERC721URIStorage, Ownable {
         address from,
         address to,
         uint256 tokenId
-    ) public virtual override onlyUnlockedForGame(tokenId) {
+    ) public virtual override unlockedForGame(tokenId) {
         super.safeTransferFrom(from, to, tokenId);
     }
 
@@ -79,14 +56,14 @@ contract LazyAlpha is ERC721, ERC721Enumerable, ERC721URIStorage, Ownable {
         address to,
         uint256 tokenId,
         bytes memory data
-    ) public virtual override onlyUnlockedForGame(tokenId) {
+    ) public virtual override unlockedForGame(tokenId) {
         super.safeTransferFrom(from, to, tokenId, data);
     }
 
     function approve(
         address to,
         uint256 tokenId
-    ) public virtual override onlyUnlockedForGame(tokenId) {
+    ) public virtual override unlockedForGame(tokenId) {
         super.approve(to, tokenId);
     }
 

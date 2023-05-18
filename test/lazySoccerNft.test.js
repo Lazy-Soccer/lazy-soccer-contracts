@@ -30,7 +30,7 @@ const { ZERO_ADDRESS } = require('../constants/common.constants');
           }
 
           async function giveWhitelistAccess(address) {
-              await lazySoccer.changeCallTransactionAddresses([address]);
+              await lazySoccer.changeWhitelistAddresses([address]);
           }
 
           beforeEach(async () => {
@@ -40,12 +40,7 @@ const { ZERO_ADDRESS } = require('../constants/common.constants');
               const LazySoccerNFT = await ethers.getContractFactory(
                   'LazyStaff',
               );
-              const soccerArgs = [
-                  process.env.NFT_NAME || 'NFT',
-                  process.env.NFT_SYMBOL || 'NFT',
-                  BACKEND_SIGNER,
-                  WHITELIST_ADDRESSES,
-              ];
+              const soccerArgs = [BACKEND_SIGNER, WHITELIST_ADDRESSES];
               lazySoccer = (await LazySoccerNFT.deploy(...soccerArgs)).connect(
                   deployer,
               );
@@ -54,7 +49,7 @@ const { ZERO_ADDRESS } = require('../constants/common.constants');
           describe('constructor', () => {
               it('sets starting values correctly', async () => {
                   const callTransactionWhitelist =
-                      await lazySoccer.callTransactionAddresses(0);
+                      await lazySoccer.whitelistAddresses(0);
                   const backendSigner = await lazySoccer.backendSigner();
 
                   assert.equal(
@@ -74,9 +69,7 @@ const { ZERO_ADDRESS } = require('../constants/common.constants');
                   await expect(lazySoccer.changeBackendSigner(attacker.address))
                       .to.be.reverted;
                   await expect(
-                      lazySoccer.changeCallTransactionAddresses([
-                          attacker.address,
-                      ]),
+                      lazySoccer.changeWhitelistAddresses([attacker.address]),
                   ).to.be.reverted;
               });
 
@@ -89,12 +82,10 @@ const { ZERO_ADDRESS } = require('../constants/common.constants');
               });
 
               it('can change nft whitelist array', async () => {
-                  await lazySoccer.changeCallTransactionAddresses([
-                      ZERO_ADDRESS,
-                  ]);
+                  await lazySoccer.changeWhitelistAddresses([ZERO_ADDRESS]);
 
                   const callTransactionWhitelist =
-                      await lazySoccer.callTransactionAddresses(0);
+                      await lazySoccer.whitelistAddresses(0);
 
                   assert.equal(callTransactionWhitelist, ZERO_ADDRESS);
               });

@@ -27,7 +27,6 @@ contract LazySoccerMarketplace is
     IERC20 public currencyContract;
     address public feeWallet;
     address public backendSigner;
-    address[] public callTransactionWhitelist;
     mapping(address => bool) public availableCollections;
     mapping(address => mapping(uint256 => address)) public listings;
     mapping(address => mapping(uint256 => bool)) private seenNonce;
@@ -56,25 +55,6 @@ contract LazySoccerMarketplace is
         uint256 transferId
     );
 
-    modifier onlyAvailableAddresses() {
-        bool isValidAddress = false;
-        uint256 length = callTransactionWhitelist.length;
-
-        for (uint256 i; i < length; ) {
-            if (msg.sender == callTransactionWhitelist[i]) {
-                isValidAddress = true;
-
-                break;
-            }
-            unchecked {
-                ++i;
-            }
-        }
-
-        require(isValidAddress, "No permission");
-        _;
-    }
-
     modifier onlyAvailableCollections(address collection) {
         require(availableCollections[collection], "Collection isn't available");
         _;
@@ -84,13 +64,11 @@ contract LazySoccerMarketplace is
         IERC20 _currencyContract,
         address _feeWallet,
         address _backendSigner,
-        address[] memory _callTransactionWhitelist,
         address[] memory _availableCollections
     ) public initializer {
         currencyContract = _currencyContract;
         feeWallet = _feeWallet;
         backendSigner = _backendSigner;
-        callTransactionWhitelist = _callTransactionWhitelist;
 
         uint256 length = _availableCollections.length;
 
@@ -113,12 +91,6 @@ contract LazySoccerMarketplace is
 
     function unpause() external onlyOwner {
         _unpause();
-    }
-
-    function changeCallTransactionAddresses(
-        address[] calldata _callTransactionWhitelist
-    ) external onlyOwner {
-        callTransactionWhitelist = _callTransactionWhitelist;
     }
 
     function changeCurrencyAddress(
