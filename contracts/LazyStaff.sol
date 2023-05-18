@@ -201,19 +201,36 @@ contract LazyStaff is
         );
     }
 
-    function lockNftForGame(
-        uint256 tokenId
-    ) external onlyNftOwner(tokenId) onlyUnlockedForGame(tokenId) {
-        lockedNftForGame[tokenId] = true;
-
-        emit NFTLockedForGame(tokenId);
+    function unlockNftForGame(uint256 tokenId) external {
+        _unlockNftForGame(tokenId);
     }
 
-    function unlockNftForGame(uint256 tokenId) external onlyNftOwner(tokenId) {
-        require(lockedNftForGame[tokenId], "Nft is unlocked");
-        delete lockedNftForGame[tokenId];
+    function unlockBatch(uint256[] calldata tokenIds) external {
+        uint256 length = tokenIds.length;
 
-        emit NFTUnlockedForGame(tokenId);
+        for (uint256 i; i < length; ) {
+            _unlockNftForGame(tokenIds[i]);
+
+            unchecked {
+                ++i;
+            }
+        }
+    }
+
+    function lockNftForGame(uint256 tokenId) external {
+        _lockNftForGame(tokenId);
+    }
+
+    function lockBatch(uint256[] calldata tokenIds) external {
+        uint256 length = tokenIds.length;
+
+        for (uint256 i; i < length; ) {
+            _lockNftForGame(tokenIds[i]);
+
+            unchecked {
+                ++i;
+            }
+        }
     }
 
     function transferFrom(
@@ -281,6 +298,21 @@ contract LazyStaff is
         uint256 tokenId
     ) internal override(ERC721, ERC721URIStorage) {
         super._burn(tokenId);
+    }
+
+    function _lockNftForGame(
+        uint256 tokenId
+    ) private onlyNftOwner(tokenId) onlyUnlockedForGame(tokenId) {
+        lockedNftForGame[tokenId] = true;
+
+        emit NFTLockedForGame(tokenId);
+    }
+
+    function _unlockNftForGame(uint256 tokenId) private onlyNftOwner(tokenId) {
+        require(lockedNftForGame[tokenId], "Nft is unlocked");
+        delete lockedNftForGame[tokenId];
+
+        emit NFTUnlockedForGame(tokenId);
     }
 
     function _mintNewNft(

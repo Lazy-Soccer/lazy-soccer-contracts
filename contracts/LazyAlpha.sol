@@ -39,8 +39,23 @@ contract LazyAlpha is ERC721, ERC721Enumerable, ERC721URIStorage, Ownable {
         emit NFTUnlockedForGame(tokenId);
     }
 
-    function safeMint(address to, uint256 tokenId) public onlyOwner {
-        _safeMint(to, tokenId);
+    function mintBatch(
+        address to,
+        uint256[] calldata tokenIds,
+        string[] calldata tokenURIs
+    ) external onlyOwner {
+        require(tokenIds.length == tokenURIs.length);
+
+        uint256 length = tokenIds.length;
+
+        for (uint256 i; i < length; ) {
+            _safeMint(to, tokenIds[i]);
+            _setTokenURI(tokenIds[i], tokenURIs[i]);
+
+            unchecked {
+                ++i;
+            }
+        }
     }
 
     function transferFrom(
