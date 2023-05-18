@@ -234,6 +234,7 @@ contract LazyStaff is
         unspentSkills[_tokenId] = _unspentSkills;
         nftStats[_tokenId] = _nftSkills;
         nftRarity[_tokenId] = _rarity;
+        lockedNftForGame[_tokenId] = true;
 
         emit NewNFTMinted(_to, _ipfsHash, _tokenId);
     }

@@ -97,16 +97,13 @@ const { ZERO_ADDRESS } = require('../constants/common.constants');
                   await mintNFT(deployer.address);
               });
 
-              it('can lock nft', async () => {
-                  await lazySoccer.lockNftForGame(0);
-
+              it('is locked after mint', async () => {
                   const isLocked = await lazySoccer.lockedNftForGame(0);
 
                   assert.equal(isLocked, true);
               });
 
               it('can unlock nft', async () => {
-                  await lazySoccer.lockNftForGame(0);
                   await lazySoccer.unlockNftForGame(0);
 
                   const isLocked = await lazySoccer.lockedNftForGame(0);
@@ -117,9 +114,9 @@ const { ZERO_ADDRESS } = require('../constants/common.constants');
               it('can lock and unlock nft only by owner', async () => {
                   const [, attacker] = await ethers.getSigners();
 
-                  await expect(lazySoccer.connect(attacker).lockNftForGame(0))
-                      .to.be.reverted;
                   await expect(lazySoccer.connect(attacker).unlockNftForGame(0))
+                      .to.be.reverted;
+                  await expect(lazySoccer.connect(attacker).lockNftForGame(0))
                       .to.be.reverted;
               });
           });
@@ -157,6 +154,7 @@ const { ZERO_ADDRESS } = require('../constants/common.constants');
               beforeEach(async () => {
                   await giveWhitelistAccess(deployer.address);
                   await mintNFT(deployer.address);
+                  await lazySoccer.unlockNftForGame(0)
               });
 
               it('can update nft', async () => {

@@ -30,6 +30,7 @@ const { getRandomInt } = require('../utils/math');
                   10,
                   0,
               );
+              await lazySoccer.unlockNftForGame(tokenId)
           }
 
           async function giveWhitelistAccess(address) {
