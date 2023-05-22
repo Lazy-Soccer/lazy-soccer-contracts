@@ -20,8 +20,8 @@ contract LazyBoxes is ERC721, ERC721Enumerable, ERC721URIStorage, Ownable {
         uint256 tokenId = _tokenIdCounter.current();
 
         _tokenIdCounter.increment();
-        _setTokenURI(_tokenId, _ipfsHash);
         _safeMint(to, tokenId);
+        _setTokenURI(tokenId, _ipfsHash);
     }
 
     function openBox(uint256 tokenId) external {
