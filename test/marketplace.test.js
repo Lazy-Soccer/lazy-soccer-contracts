@@ -4,6 +4,7 @@ const { developmentChains } = require('../helper-hardhat-config');
 const {
     CURRENCY_ADDRESS,
     FEE_WALLET,
+    FEE_SECOND_WALLET,
     WHITELIST_ADDRESSES,
     BACKEND_SIGNER,
 } = require('../constants/marketplace.constants');
@@ -30,7 +31,7 @@ const { getRandomInt } = require('../utils/math');
                   10,
                   0,
               );
-              await lazySoccer.unlockNftForGame(tokenId)
+              await lazySoccer.unlockNftForGame(tokenId);
           }
 
           async function giveWhitelistAccess(address) {
@@ -64,7 +65,7 @@ const { getRandomInt } = require('../utils/math');
               );
               const marketplaceArgs = [
                   CURRENCY_ADDRESS,
-                  FEE_WALLET,
+                  [FEE_WALLET, FEE_SECOND_WALLET],
                   BACKEND_SIGNER,
                   [lazySoccer.address],
               ];
@@ -87,7 +88,7 @@ const { getRandomInt } = require('../utils/math');
                           lazySoccer.address,
                       );
                   const currencyAddress = await marketplace.currencyContract();
-                  const feeWallet = await marketplace.feeWallet();
+                  const feeWallet = await marketplace.feeWallets(0);
 
                   const backendSigner = await marketplace.backendSigner();
 
@@ -104,8 +105,8 @@ const { getRandomInt } = require('../utils/math');
 
                   marketplace = marketplace.connect(attacker);
 
-                  await expect(marketplace.changeFeeWallet(attacker.address)).to
-                      .be.reverted;
+                  await expect(marketplace.changeFeeWallets([attacker.address]))
+                      .to.be.reverted;
                   await expect(
                       marketplace.changeBackendSigner(attacker.address),
                   ).to.be.reverted;
@@ -119,9 +120,9 @@ const { getRandomInt } = require('../utils/math');
               });
 
               it('can change fee wallet', async () => {
-                  await marketplace.changeFeeWallet(ZERO_ADDRESS);
+                  await marketplace.changeFeeWallets([ZERO_ADDRESS]);
 
-                  const feeWallet = await marketplace.feeWallet();
+                  const feeWallet = await marketplace.feeWallets(0);
 
                   assert.equal(feeWallet, ZERO_ADDRESS);
               });

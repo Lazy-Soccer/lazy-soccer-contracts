@@ -5,7 +5,7 @@ const { assert, expect } = require('chai');
 !developmentChains.includes(network.name)
     ? describe.skip()
     : describe('Lazy Boxes NFT unit tests', () => {
-          const ipfsHash = 'hash'
+          const ipfsHash = 'hash';
           let deployer, lazyBoxes;
 
           beforeEach(async () => {
@@ -32,7 +32,9 @@ const { assert, expect } = require('chai');
                   attacker = accounts[1];
 
                   await expect(
-                      lazyBoxes.connect(attacker).safeMint(attacker.address, ipfsHash),
+                      lazyBoxes
+                          .connect(attacker)
+                          .safeMint(attacker.address, ipfsHash),
                   ).to.be.revertedWith('Ownable: caller is not the owner');
               });
           });

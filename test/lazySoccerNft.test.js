@@ -154,7 +154,7 @@ const { ZERO_ADDRESS } = require('../constants/common.constants');
               beforeEach(async () => {
                   await giveWhitelistAccess(deployer.address);
                   await mintNFT(deployer.address);
-                  await lazySoccer.unlockNftForGame(0)
+                  await lazySoccer.unlockNftForGame(0);
               });
 
               it('can update nft', async () => {

@@ -25,11 +25,12 @@ contract LazySoccerMarketplace is
     }
 
     IERC20 public currencyContract;
-    address public feeWallet;
+    address[] public feeWallets;
     address public backendSigner;
     mapping(address => bool) public availableCollections;
     mapping(address => mapping(uint256 => address)) public listings;
     mapping(address => mapping(uint256 => bool)) private seenNonce;
+    uint8 private feeReceiver;
 
     event ListingCanceled(
         uint256 indexed tokenId,
@@ -62,12 +63,12 @@ contract LazySoccerMarketplace is
 
     function initialize(
         IERC20 _currencyContract,
-        address _feeWallet,
+        address[] calldata _feeWallets,
         address _backendSigner,
         address[] memory _availableCollections
     ) public initializer {
         currencyContract = _currencyContract;
-        feeWallet = _feeWallet;
+        feeWallets = _feeWallets;
         backendSigner = _backendSigner;
 
         uint256 length = _availableCollections.length;
@@ -103,8 +104,11 @@ contract LazySoccerMarketplace is
         backendSigner = _backendSigner;
     }
 
-    function changeFeeWallet(address _feeWallet) external onlyOwner {
-        feeWallet = _feeWallet;
+    function changeFeeWallets(
+        address[] calldata _feeWallets
+    ) external onlyOwner {
+        feeWallets = _feeWallets;
+        feeReceiver = 0;
     }
 
     function addCollection(address _collection) external onlyOwner {
@@ -305,15 +309,26 @@ contract LazySoccerMarketplace is
     ) private {
         if (currency == CurrencyType.ERC20) {
             currencyContract.transferFrom(msg.sender, to, price);
-            currencyContract.transferFrom(msg.sender, feeWallet, fee);
+            currencyContract.transferFrom(
+                msg.sender,
+                feeWallets[feeReceiver],
+                fee
+            );
         } else {
             require(msg.value >= price + fee, "Insufficient eth value");
 
             (bool success, ) = to.call{value: price}("");
             require(success, "Transfer failed");
 
-            (success, ) = feeWallet.call{value: fee}("");
+            (success, ) = payable(feeWallets[feeReceiver]).call{value: fee}("");
             require(success, "Transfer failed");
+
+            uint length = feeWallets.length;
+
+            if (length > 1) {
+                uint8 nextReceiver = feeReceiver + 1;
+                feeReceiver = nextReceiver == length ? 0 : nextReceiver;
+            }
         }
     }
 
