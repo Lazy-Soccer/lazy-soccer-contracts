@@ -3,7 +3,7 @@ const {
     CURRENCY_ADDRESS,
     FEE_WALLET,
     BACKEND_SIGNER,
-    WHITELIST_ADDRESSES,
+    FEE_SECOND_WALLET,
 } = require('../constants/marketplace.constants');
 
 async function main() {
@@ -12,9 +12,8 @@ async function main() {
     );
     const args = [
         CURRENCY_ADDRESS,
-        FEE_WALLET,
+        [FEE_WALLET, FEE_SECOND_WALLET],
         BACKEND_SIGNER,
-        WHITELIST_ADDRESSES,
         [
             process.env.LAZY_STAFF_ADDRESS,
             process.env.LAZY_BOXES_ADDRESS,

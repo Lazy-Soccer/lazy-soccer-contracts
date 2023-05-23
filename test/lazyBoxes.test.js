@@ -5,6 +5,7 @@ const { assert, expect } = require('chai');
 !developmentChains.includes(network.name)
     ? describe.skip()
     : describe('Lazy Boxes NFT unit tests', () => {
+          const ipfsHash = 'hash';
           let deployer, lazyBoxes;
 
           beforeEach(async () => {
@@ -19,7 +20,7 @@ const { assert, expect } = require('chai');
               it('can mint nft', async () => {
                   const tokenId = 0;
 
-                  await lazyBoxes.safeMint(deployer.address);
+                  await lazyBoxes.safeMint(deployer.address, ipfsHash);
                   assert.equal(
                       await lazyBoxes.ownerOf(tokenId),
                       deployer.address,
@@ -31,7 +32,9 @@ const { assert, expect } = require('chai');
                   attacker = accounts[1];
 
                   await expect(
-                      lazyBoxes.connect(attacker).safeMint(attacker.address),
+                      lazyBoxes
+                          .connect(attacker)
+                          .safeMint(attacker.address, ipfsHash),
                   ).to.be.revertedWith('Ownable: caller is not the owner');
               });
           });
@@ -39,7 +42,7 @@ const { assert, expect } = require('chai');
           describe('box opening', () => {
               it('burns box and emits an event', async () => {
                   const tokenId = 0;
-                  await lazyBoxes.safeMint(deployer.address);
+                  await lazyBoxes.safeMint(deployer.address, ipfsHash);
 
                   await expect(lazyBoxes.openBox(tokenId))
                       .to.emit(lazyBoxes, 'BoxOpened')
@@ -54,7 +57,7 @@ const { assert, expect } = require('chai');
                   const accounts = await ethers.getSigners();
                   attacker = accounts[1];
 
-                  await lazyBoxes.safeMint(deployer.address);
+                  await lazyBoxes.safeMint(deployer.address, ipfsHash);
                   await expect(
                       lazyBoxes.connect(attacker).openBox(tokenId),
                   ).to.be.revertedWith('Not NFT owner');
