@@ -202,18 +202,26 @@ const { ZERO_ADDRESS } = require('../constants/common.constants');
                   ).to.be.reverted;
               });
 
-              it('allows only unlocked nft to be updated', async () => {
+              it('allows locked nft to be updated', async () => {
+                  const initialFitnessSkill = (await lazySoccer.nftStats(0))
+                      .fitnessTrainerLVL;
                   await lazySoccer.lockNftForGame(0);
 
-                  await expect(
-                      lazySoccer.updateNft(0, {
+
+                  await lazySoccer.updateNft(0, {
                           marketerLVL: 0,
                           accountantLVL: 0,
                           scoutLVL: 0,
                           coachLVL: 0,
                           fitnessTrainerLVL: 5,
-                      }),
-                  ).to.be.reverted;
+                      })
+                  const finalFitnessSkill = (await lazySoccer.nftStats(0))
+                      .fitnessTrainerLVL;
+                  assert.equal(
+                      finalFitnessSkill.toString() -
+                      initialFitnessSkill.toString(),
+                      5,
+                  );
               });
 
               it('reverts when not enough unspent skills', async () => {
