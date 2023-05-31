@@ -15,14 +15,14 @@ module.exports = {
         compilers: [
             {
                 version: '0.8.9',
+                settings: {
+                    optimizer: {
+                        enabled: true,
+                        runs: 200,
+                    },
+                },
             },
         ],
-        settings: {
-            optimizer: {
-                enabled: true,
-                runs: 200,
-            },
-        },
     },
 
     defaultNetwork: 'hardhat',
