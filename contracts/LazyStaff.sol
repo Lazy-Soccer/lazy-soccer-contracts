@@ -10,9 +10,9 @@ import "./utils/NftLock.sol";
 
 contract LazyStaff is
     ILazyStaff,
-    NftLock,
-    SignatureResolver,
     ERC721URIStorage,
+    SignatureResolver,
+    NftLock,
     Ownable
 {
     mapping(uint256 => uint256) public unspentSkills;
@@ -20,7 +20,12 @@ contract LazyStaff is
     mapping(uint256 => StuffNFTRarity) public nftRarity;
     address public backendSigner;
     address[] public whitelistAddresses;
-    mapping(address => mapping(uint256 => bool)) private seenNonce;
+
+    error BadSignature();
+    error ForbiddenAction();
+    error MaxRarity();
+    error NotEnoughSkills();
+    error DifferentRarities();
 
     constructor(
         address _signer,
@@ -28,21 +33,6 @@ contract LazyStaff is
     ) ERC721("LAZY STAFF", "LS") {
         backendSigner = _signer;
         whitelistAddresses = _whitelistAddresses;
-    }
-
-    modifier onlyAvailableAddresses() {
-        bool doesListContainElement = false;
-        uint256 length = whitelistAddresses.length;
-
-        for (uint256 i = 0; i < length; i++) {
-            if (msg.sender == whitelistAddresses[i]) {
-                doesListContainElement = true;
-
-                break;
-            }
-        }
-        require(doesListContainElement, "No permission");
-        _;
     }
 
     function changeWhitelistAddresses(
@@ -65,7 +55,9 @@ contract LazyStaff is
             tokenSkills.coachLVL +
             tokenSkills.fitnessTrainerLVL;
 
-        require(skillsSum <= unspentSkills[tokenId], "Unspent skills");
+        if (skillsSum > unspentSkills[tokenId]) {
+            revert NotEnoughSkills();
+        }
 
         nftStats[tokenId].marketerLVL += tokenSkills.marketerLVL;
         nftStats[tokenId].accountantLVL += tokenSkills.accountantLVL;
@@ -93,7 +85,22 @@ contract LazyStaff is
         NftSkills memory _nftSkills,
         uint256 _unspentSkills,
         StuffNFTRarity _rarity
-    ) external onlyAvailableAddresses {
+    ) external {
+        bool doesListContainElement = false;
+        uint256 length = whitelistAddresses.length;
+
+        for (uint256 i = 0; i < length; i++) {
+            if (msg.sender == whitelistAddresses[i]) {
+                doesListContainElement = true;
+
+                break;
+            }
+        }
+
+        if (!doesListContainElement) {
+            revert ForbiddenAction();
+        }
+
         _mintNft(_to, _tokenId, _ipfsHash, _nftSkills, _unspentSkills, _rarity);
     }
 
@@ -106,15 +113,16 @@ contract LazyStaff is
         unlockedForGame(breedArgs.firstParentTokenId)
         unlockedForGame(breedArgs.secondParentTokenId)
     {
-        require(
-            nftRarity[breedArgs.firstParentTokenId] ==
-                nftRarity[breedArgs.secondParentTokenId],
-            "Different rarity"
-        );
-        require(
-            nftRarity[breedArgs.firstParentTokenId] <= StuffNFTRarity.Epic,
-            "Breed of Legendary nft"
-        );
+        if (
+            nftRarity[breedArgs.firstParentTokenId] !=
+            nftRarity[breedArgs.secondParentTokenId]
+        ) {
+            revert DifferentRarities();
+        }
+
+        if (nftRarity[breedArgs.firstParentTokenId] > StuffNFTRarity.Epic) {
+            revert MaxRarity();
+        }
 
         bytes memory skillsEncoded = abi.encodePacked(
             _uint256ToString(breedArgs.nftSkills.marketerLVL),
@@ -128,8 +136,8 @@ contract LazyStaff is
             _uint256ToString(breedArgs.nftSkills.fitnessTrainerLVL)
         );
 
-        require(
-            _checkSignOperator(
+        if (
+            !_checkSignOperator(
                 keccak256(
                     abi.encodePacked(
                         "Breed NFT-"
@@ -151,9 +159,10 @@ contract LazyStaff is
                 ),
                 breedArgs.signature,
                 backendSigner
-            ),
-            "Bad signature"
-        );
+            )
+        ) {
+            revert BadSignature();
+        }
 
         uint8 _nftRarity = uint8(nftRarity[breedArgs.firstParentTokenId]) + 1;
 
@@ -175,50 +184,6 @@ contract LazyStaff is
             breedArgs.secondParentTokenId,
             breedArgs.childTokenId
         );
-    }
-
-    function transferFrom(
-        address from,
-        address to,
-        uint256 tokenId
-    ) public virtual override(ERC721, IERC721) unlockedForGame(tokenId) {
-        super.transferFrom(from, to, tokenId);
-    }
-
-    function safeTransferFrom(
-        address from,
-        address to,
-        uint256 tokenId
-    ) public virtual override(ERC721, IERC721) unlockedForGame(tokenId) {
-        super.safeTransferFrom(from, to, tokenId);
-    }
-
-    function safeTransferFrom(
-        address from,
-        address to,
-        uint256 tokenId,
-        bytes memory data
-    ) public virtual override(ERC721, IERC721) unlockedForGame(tokenId) {
-        super.safeTransferFrom(from, to, tokenId, data);
-    }
-
-    function approve(
-        address to,
-        uint256 tokenId
-    ) public virtual override(ERC721, IERC721) unlockedForGame(tokenId) {
-        super.approve(to, tokenId);
-    }
-
-    function tokenURI(
-        uint256 tokenId
-    ) public view override(ERC721, ERC721URIStorage) returns (string memory) {
-        return super.tokenURI(tokenId);
-    }
-
-    function _burn(
-        uint256 tokenId
-    ) internal override(ERC721, ERC721URIStorage) {
-        super._burn(tokenId);
     }
 
     function _mintNft(
@@ -246,5 +211,62 @@ contract LazyStaff is
         delete lockedNftForGame[tokenId];
 
         _burn(tokenId);
+    }
+
+    function tokenInfo(
+        uint256 tokenId
+    )
+        external
+        view
+        returns (
+            uint256 availableSkills,
+            NftSkills memory skills,
+            StuffNFTRarity rarity,
+            bool isLocked,
+            string memory uri
+        )
+    {
+        availableSkills = unspentSkills[tokenId];
+        skills = nftStats[tokenId];
+        rarity = nftRarity[tokenId];
+        isLocked = lockedNftForGame[tokenId];
+        uri = tokenURI(tokenId);
+    }
+
+    function transferFrom(
+        address from,
+        address to,
+        uint256 tokenId
+    ) public virtual override(ERC721, IERC721) unlockedForGame(tokenId) {
+        super.transferFrom(from, to, tokenId);
+    }
+
+    function safeTransferFrom(
+        address from,
+        address to,
+        uint256 tokenId
+    ) public virtual override(ERC721, IERC721) unlockedForGame(tokenId) {
+        super.safeTransferFrom(from, to, tokenId);
+    }
+
+    function safeTransferFrom(
+        address from,
+        address to,
+        uint256 tokenId,
+        bytes memory data
+    ) public virtual override(ERC721, IERC721) unlockedForGame(tokenId) {
+        super.safeTransferFrom(from, to, tokenId, data);
+    }
+
+    function tokenURI(
+        uint256 tokenId
+    ) public view override(ERC721, ERC721URIStorage) returns (string memory) {
+        return super.tokenURI(tokenId);
+    }
+
+    function _burn(
+        uint256 tokenId
+    ) internal override(ERC721, ERC721URIStorage) {
+        super._burn(tokenId);
     }
 }

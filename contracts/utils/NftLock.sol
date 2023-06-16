@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.9;
 
-import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 
 abstract contract NftLock is ERC721 {
@@ -10,13 +9,21 @@ abstract contract NftLock is ERC721 {
     event NFTLockedForGame(uint256 indexed tokenId);
     event NFTUnlockedForGame(uint256 indexed tokenId);
 
+    error NftLocked();
+    error NftUnlocked();
+    error NotNftOwner();
+
     modifier unlockedForGame(uint256 tokenId) {
-        require(!lockedNftForGame[tokenId], "NFT locked");
+        if(lockedNftForGame[tokenId]) {
+            revert NftLocked();
+        }
         _;
     }
 
     modifier onlyNftOwner(uint256 tokenId) {
-        require(_ownerOf(tokenId) == msg.sender, "Not NFT owner");
+        if(_ownerOf(tokenId) != msg.sender) {
+            revert NotNftOwner();
+        }
         _;
     }
 
@@ -61,7 +68,10 @@ abstract contract NftLock is ERC721 {
     }
 
     function _unlockNftForGame(uint256 tokenId) private onlyNftOwner(tokenId) {
-        require(lockedNftForGame[tokenId], "Nft is unlocked");
+        if(!lockedNftForGame[tokenId]) {
+            revert NftUnlocked();
+        }
+
         delete lockedNftForGame[tokenId];
 
         emit NFTUnlockedForGame(tokenId);
