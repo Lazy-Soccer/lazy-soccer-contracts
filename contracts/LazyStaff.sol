@@ -178,6 +178,26 @@ contract LazyStaff is
         );
     }
 
+    function tokenInfo(
+        uint256 tokenId
+    )
+        external
+        view
+        returns (
+            uint256 availableSkills,
+            NftSkills memory skills,
+            StuffNFTRarity rarity,
+            bool isLocked,
+            string memory uri
+        )
+    {
+        availableSkills = unspentSkills[tokenId];
+        skills = nftStats[tokenId];
+        rarity = nftRarity[tokenId];
+        isLocked = lockedNftForGame[tokenId];
+        uri = tokenURI(tokenId);
+    }
+
     function transferFrom(
         address from,
         address to,
