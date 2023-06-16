@@ -24,7 +24,23 @@ contract LazyBoxes is ERC721, ERC721Enumerable, ERC721URIStorage, Ownable {
         _setTokenURI(tokenId, _ipfsHash);
     }
 
+    function openBatch(uint256[] calldata tokenIds) external {
+        uint256 length = tokenIds.length;
+
+        for (uint256 i; i < length; ) {
+            _openBox(tokenIds[i]);
+
+            unchecked {
+                ++i;
+            }
+        }
+    }
+
     function openBox(uint256 tokenId) external {
+        _openBox(tokenId);
+    }
+
+    function _openBox(uint256 tokenId) private {
         require(_ownerOf(tokenId) == msg.sender, "Not NFT owner");
 
         _burn(tokenId);
