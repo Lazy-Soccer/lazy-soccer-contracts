@@ -14,14 +14,14 @@ abstract contract NftLock is ERC721 {
     error NotNftOwner();
 
     modifier unlockedForGame(uint256 tokenId) {
-        if(lockedNftForGame[tokenId]) {
+        if (lockedNftForGame[tokenId]) {
             revert NftLocked();
         }
         _;
     }
 
     modifier onlyNftOwner(uint256 tokenId) {
-        if(_ownerOf(tokenId) != msg.sender) {
+        if (_ownerOf(tokenId) != msg.sender) {
             revert NotNftOwner();
         }
         _;
@@ -68,7 +68,7 @@ abstract contract NftLock is ERC721 {
     }
 
     function _unlockNftForGame(uint256 tokenId) private onlyNftOwner(tokenId) {
-        if(!lockedNftForGame[tokenId]) {
+        if (!lockedNftForGame[tokenId]) {
             revert NftUnlocked();
         }
 

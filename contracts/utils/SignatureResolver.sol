@@ -26,7 +26,7 @@ abstract contract SignatureResolver {
     function splitSignature(
         bytes memory sig
     ) internal pure returns (bytes32 r, bytes32 s, uint8 v) {
-        if(sig.length != 65) {
+        if (sig.length != 65) {
             revert InvalidSignatureLength();
         }
 
