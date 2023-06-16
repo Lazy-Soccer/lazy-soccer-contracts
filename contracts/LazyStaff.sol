@@ -67,15 +67,7 @@ contract LazyStaff is
 
         unspentSkills[tokenId] -= skillsSum;
 
-        emit NFTUpdated(
-            tokenId,
-            unspentSkills[tokenId],
-            tokenSkills.marketerLVL,
-            tokenSkills.accountantLVL,
-            tokenSkills.scoutLVL,
-            tokenSkills.coachLVL,
-            tokenSkills.fitnessTrainerLVL
-        );
+        emit NFTUpdated(tokenId, unspentSkills[tokenId], nftStats[tokenId]);
     }
 
     function mintNewNft(
@@ -186,33 +178,6 @@ contract LazyStaff is
         );
     }
 
-    function _mintNft(
-        address _to,
-        uint256 _tokenId,
-        string memory _ipfsHash,
-        NftSkills memory _nftSkills,
-        uint256 _unspentSkills,
-        StuffNFTRarity _rarity
-    ) private {
-        _safeMint(_to, _tokenId);
-        _setTokenURI(_tokenId, _ipfsHash);
-        unspentSkills[_tokenId] = _unspentSkills;
-        nftStats[_tokenId] = _nftSkills;
-        nftRarity[_tokenId] = _rarity;
-        lockedNftForGame[_tokenId] = true;
-
-        emit NewNFTMinted(_to, _ipfsHash, _tokenId);
-    }
-
-    function _burnTokenForBreed(uint256 tokenId) private {
-        delete unspentSkills[tokenId];
-        delete nftStats[tokenId];
-        delete nftRarity[tokenId];
-        delete lockedNftForGame[tokenId];
-
-        _burn(tokenId);
-    }
-
     function tokenInfo(
         uint256 tokenId
     )
@@ -268,5 +233,39 @@ contract LazyStaff is
         uint256 tokenId
     ) internal override(ERC721, ERC721URIStorage) {
         super._burn(tokenId);
+    }
+
+    function _mintNft(
+        address _to,
+        uint256 _tokenId,
+        string memory _ipfsHash,
+        NftSkills memory _nftSkills,
+        uint256 _unspentSkills,
+        StuffNFTRarity _rarity
+    ) private {
+        _safeMint(_to, _tokenId);
+        _setTokenURI(_tokenId, _ipfsHash);
+        unspentSkills[_tokenId] = _unspentSkills;
+        nftStats[_tokenId] = _nftSkills;
+        nftRarity[_tokenId] = _rarity;
+        lockedNftForGame[_tokenId] = true;
+
+        emit NewNFTMinted(
+            _to,
+            _ipfsHash,
+            _tokenId,
+            _nftSkills,
+            _unspentSkills,
+            _rarity
+        );
+    }
+
+    function _burnTokenForBreed(uint256 tokenId) private {
+        delete unspentSkills[tokenId];
+        delete nftStats[tokenId];
+        delete nftRarity[tokenId];
+        delete lockedNftForGame[tokenId];
+
+        _burn(tokenId);
     }
 }
