@@ -2,6 +2,8 @@
 pragma solidity ^0.8.0;
 
 abstract contract SignatureResolver {
+    error InvalidSignatureLength();
+
     function _checkSignOperator(
         bytes32 hash,
         bytes memory signature,
@@ -24,7 +26,9 @@ abstract contract SignatureResolver {
     function splitSignature(
         bytes memory sig
     ) internal pure returns (bytes32 r, bytes32 s, uint8 v) {
-        require(sig.length == 65, "invalid signature length");
+        if (sig.length != 65) {
+            revert InvalidSignatureLength();
+        }
 
         assembly {
             /*
