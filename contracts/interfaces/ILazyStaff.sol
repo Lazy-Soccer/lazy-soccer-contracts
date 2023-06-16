@@ -4,7 +4,14 @@ pragma solidity ^0.8.4;
 import "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 
 interface ILazyStaff is IERC721 {
-    event NewNFTMinted(address to, string ipfsHash, uint256 indexed tokenId);
+    event NewNFTMinted(
+        address to,
+        string ipfsHash,
+        uint256 indexed tokenId,
+        NftSkills skills,
+        uint256 unspentSkills,
+        StuffNFTRarity rarity
+    );
     event NFTBreeded(
         address to,
         uint256 indexed firstParrentTokenId,
@@ -14,11 +21,7 @@ interface ILazyStaff is IERC721 {
     event NFTUpdated(
         uint256 indexed tokenId,
         uint256 unspentSkills,
-        uint256 marketerLVL,
-        uint256 accountantLVL,
-        uint256 scoutLVL,
-        uint256 coachLVL,
-        uint256 fitnessTrainerLVL
+        NftSkills skills
     );
 
     enum StuffNFTRarity {

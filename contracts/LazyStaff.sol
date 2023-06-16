@@ -75,15 +75,7 @@ contract LazyStaff is
 
         unspentSkills[tokenId] -= skillsSum;
 
-        emit NFTUpdated(
-            tokenId,
-            unspentSkills[tokenId],
-            tokenSkills.marketerLVL,
-            tokenSkills.accountantLVL,
-            tokenSkills.scoutLVL,
-            tokenSkills.coachLVL,
-            tokenSkills.fitnessTrainerLVL
-        );
+        emit NFTUpdated(tokenId, unspentSkills[tokenId], nftStats[tokenId]);
     }
 
     function mintNewNft(
@@ -236,7 +228,14 @@ contract LazyStaff is
         nftRarity[_tokenId] = _rarity;
         lockedNftForGame[_tokenId] = true;
 
-        emit NewNFTMinted(_to, _ipfsHash, _tokenId);
+        emit NewNFTMinted(
+            _to,
+            _ipfsHash,
+            _tokenId,
+            _nftSkills,
+            _unspentSkills,
+            _rarity
+        );
     }
 
     function _burnTokenForBreed(uint256 tokenId) private {

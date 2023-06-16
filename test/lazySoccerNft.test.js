@@ -12,21 +12,23 @@ const { ZERO_ADDRESS } = require('../constants/common.constants');
     : describe('Lazy Soccer NFT unit tests', () => {
           let deployer, lazySoccer;
 
-          async function mintNFT(address) {
-              await lazySoccer.mintNewNft(
-                  address,
-                  0,
-                  'hash',
-                  {
-                      marketerLVL: 0,
-                      accountantLVL: 1,
-                      scoutLVL: 2,
-                      coachLVL: 3,
-                      fitnessTrainerLVL: 4,
-                  },
-                  10,
-                  0,
-              );
+          async function mintNFT(address, amount = 1) {
+              for (let i = 0; i < amount; i++) {
+                  await lazySoccer.mintNewNft(
+                      address,
+                      i,
+                      'hash',
+                      {
+                          marketerLVL: 0,
+                          accountantLVL: 1,
+                          scoutLVL: 2,
+                          coachLVL: 3,
+                          fitnessTrainerLVL: 4,
+                      },
+                      10,
+                      0,
+                  );
+              }
           }
 
           async function giveWhitelistAccess(address) {
@@ -150,6 +152,49 @@ const { ZERO_ADDRESS } = require('../constants/common.constants');
               });
           });
 
+          describe('breed', () => {
+              beforeEach(async () => {
+                  await giveWhitelistAccess(deployer.address);
+                  await lazySoccer.changeBackendSigner(deployer.address);
+                  await mintNFT(deployer.address, 2);
+                  await lazySoccer.unlockNftForGame(0);
+                  await lazySoccer.unlockNftForGame(1);
+              });
+
+              it('can breed own nfts', async () => {
+                  const unspentSkills = 0;
+                  const skills = [0, 0, 0, 0, 0];
+                  const tokenIds = [0, 1, 2];
+                  const uri = 'ipfs';
+                  const hash = ethers.utils.keccak256(
+                      ethers.utils.toUtf8Bytes(
+                          `Breed NFT-${deployer.address.toLowerCase()}-${tokenIds.join(
+                              '-',
+                          )}-${uri}-${skills.join('-')}-${unspentSkills}`,
+                      ),
+                  );
+                  const signature = await deployer.signMessage(
+                      ethers.utils.arrayify(hash),
+                  );
+
+                  await expect(
+                      lazySoccer.breedNft([
+                          ...tokenIds,
+                          uri,
+                          skills,
+                          unspentSkills,
+                          signature,
+                      ]),
+                  )
+                      .to.emit(lazySoccer, 'NFTBreeded')
+                      .withArgs(deployer.address, ...tokenIds);
+                  assert.equal(
+                      await lazySoccer.ownerOf(tokenIds[2]),
+                      deployer.address,
+                  );
+              });
+          });
+
           describe('update nft', () => {
               beforeEach(async () => {
                   await giveWhitelistAccess(deployer.address);
@@ -158,28 +203,34 @@ const { ZERO_ADDRESS } = require('../constants/common.constants');
               });
 
               it('can update nft', async () => {
+                  const unspentSkillsExpected = 5;
                   const initialFitnessSkill = (await lazySoccer.nftStats(0))
                       .fitnessTrainerLVL;
                   const initialUnspentSkills = await lazySoccer.unspentSkills(
                       0,
                   );
 
-                  await lazySoccer.updateNft(0, {
-                      marketerLVL: 0,
-                      accountantLVL: 0,
-                      scoutLVL: 0,
-                      coachLVL: 0,
-                      fitnessTrainerLVL: 5,
-                  });
+                  await expect(
+                      lazySoccer.updateNft(0, {
+                          marketerLVL: 1,
+                          accountantLVL: 1,
+                          scoutLVL: 1,
+                          coachLVL: 1,
+                          fitnessTrainerLVL: 1,
+                      }),
+                  )
+                      .to.emit(lazySoccer, 'NFTUpdated')
+                      .withArgs(0, unspentSkillsExpected, [1, 2, 3, 4, 5]);
 
                   const finalFitnessSkill = (await lazySoccer.nftStats(0))
                       .fitnessTrainerLVL;
                   const finalUnspentSkills = await lazySoccer.unspentSkills(0);
+                  console.log(finalUnspentSkills);
 
                   assert.equal(
                       finalFitnessSkill.toString() -
                           initialFitnessSkill.toString(),
-                      5,
+                      1,
                   );
                   assert.equal(
                       initialUnspentSkills.toString() -
