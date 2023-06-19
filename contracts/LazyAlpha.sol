@@ -21,7 +21,7 @@ contract LazyAlpha is
         uint256[] calldata tokenIds,
         string[] calldata tokenURIs
     ) external onlyOwner {
-        require(tokenIds.length == tokenURIs.length);
+        require(tokenIds.length == tokenURIs.length, "Different arr length");
 
         uint256 length = tokenIds.length;
 

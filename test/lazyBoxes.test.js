@@ -3,7 +3,7 @@ const { network, ethers } = require('hardhat');
 const { assert, expect } = require('chai');
 
 !developmentChains.includes(network.name)
-    ? describe.skip()
+    ? describe.skip('')
     : describe('Lazy Boxes NFT unit tests', () => {
           const ipfsHash = 'hash';
           let deployer, lazyBoxes;

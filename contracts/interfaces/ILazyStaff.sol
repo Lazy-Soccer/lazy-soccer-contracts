@@ -63,6 +63,8 @@ interface ILazyStaff is IERC721 {
 
     function updateNft(
         uint256 tokenId,
-        NftSkills memory changeInTokenSkills
+        NftSkills memory nftSkills,
+        string memory ipfsHash,
+        bytes memory signature
     ) external;
 }
