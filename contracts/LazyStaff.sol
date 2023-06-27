@@ -50,7 +50,7 @@ contract LazyStaff is
         NftSkills memory _nftSkills,
         string memory _ipfsHash,
         bytes memory _signature
-    ) external onlyNftOwner(_tokenId) unlockedForGame(_tokenId) {
+    ) external onlyNftOwner(_tokenId) {
         uint256 skillsSum = _nftSkills.marketerLVL +
             _nftSkills.accountantLVL +
             _nftSkills.scoutLVL +
@@ -137,8 +137,8 @@ contract LazyStaff is
         external
         onlyNftOwner(breedArgs.firstParentTokenId)
         onlyNftOwner(breedArgs.secondParentTokenId)
-        unlockedForGame(breedArgs.firstParentTokenId)
-        unlockedForGame(breedArgs.secondParentTokenId)
+        lockedForGame(breedArgs.firstParentTokenId)
+        lockedForGame(breedArgs.secondParentTokenId)
     {
         if (
             nftRarity[breedArgs.firstParentTokenId] !=

@@ -164,8 +164,6 @@ const { ZERO_ADDRESS } = require('../constants/common.constants');
                   await giveWhitelistAccess(deployer.address);
                   await lazySoccer.changeBackendSigner(deployer.address);
                   await mintNFT(deployer.address, 2);
-                  await lazySoccer.unlockNftForGame(0);
-                  await lazySoccer.unlockNftForGame(1);
               });
 
               it('can breed own nfts', async () => {
@@ -209,7 +207,9 @@ const { ZERO_ADDRESS } = require('../constants/common.constants');
               const finalUnspentSkills = 5;
               const hash = ethers.utils.keccak256(
                   ethers.utils.toUtf8Bytes(
-                      `Update NFT-${tokenId}-${uri}-${finalSkills.join('-')}-${finalUnspentSkills}`,
+                      `Update NFT-${tokenId}-${uri}-${finalSkills.join(
+                          '-',
+                      )}-${finalUnspentSkills}`,
                   ),
               );
               let signature;
@@ -250,7 +250,12 @@ const { ZERO_ADDRESS } = require('../constants/common.constants');
                       ),
                   )
                       .to.emit(lazySoccer, 'NFTUpdated')
-                      .withArgs(tokenId, unspentSkillsExpected, finalSkills, uri);
+                      .withArgs(
+                          tokenId,
+                          unspentSkillsExpected,
+                          finalSkills,
+                          uri,
+                      );
 
                   const finalFitnessSkill = (await lazySoccer.nftStats(0))
                       .fitnessTrainerLVL;
@@ -285,25 +290,6 @@ const { ZERO_ADDRESS } = require('../constants/common.constants');
                           signature,
                       ),
                   ).to.be.revertedWithCustomError(lazySoccer, 'NotNftOwner');
-              });
-
-              it('allows only unlocked nft to be updated', async () => {
-                  await lazySoccer.lockNftForGame(0);
-
-                  await expect(
-                      lazySoccer.updateNft(
-                          0,
-                          {
-                              marketerLVL: 0,
-                              accountantLVL: 0,
-                              scoutLVL: 0,
-                              coachLVL: 0,
-                              fitnessTrainerLVL: 5,
-                          },
-                          uri,
-                          signature,
-                      ),
-                  ).to.be.revertedWithCustomError(lazySoccer, 'NftLocked');
               });
 
               it('reverts when not enough unspent skills', async () => {
