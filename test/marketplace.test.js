@@ -12,7 +12,7 @@ const { ZERO_ADDRESS } = require('../constants/common.constants');
 const { getRandomInt } = require('../utils/math');
 
 !developmentChains.includes(network.name)
-    ? describe.skip()
+    ? describe.skip('')
     : describe('Marketplace unit tests', () => {
           let deployer, marketplace, lazySoccer;
 

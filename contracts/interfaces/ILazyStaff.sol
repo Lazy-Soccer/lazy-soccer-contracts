@@ -21,7 +21,8 @@ interface ILazyStaff is IERC721 {
     event NFTUpdated(
         uint256 indexed tokenId,
         uint256 unspentSkills,
-        NftSkills skills
+        NftSkills skills,
+        string ipfsHash
     );
 
     enum StuffNFTRarity {
@@ -63,6 +64,8 @@ interface ILazyStaff is IERC721 {
 
     function updateNft(
         uint256 tokenId,
-        NftSkills memory changeInTokenSkills
+        NftSkills memory nftSkills,
+        string memory ipfsHash,
+        bytes memory signature
     ) external;
 }

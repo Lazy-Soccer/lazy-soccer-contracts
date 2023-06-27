@@ -116,10 +116,12 @@ const { ZERO_ADDRESS } = require('../constants/common.constants');
               it('can lock and unlock nft only by owner', async () => {
                   const [, attacker] = await ethers.getSigners();
 
-                  await expect(lazySoccer.connect(attacker).unlockNftForGame(0))
-                      .to.be.reverted;
-                  await expect(lazySoccer.connect(attacker).lockNftForGame(0))
-                      .to.be.reverted;
+                  await expect(
+                      lazySoccer.connect(attacker).unlockNftForGame(0),
+                  ).to.be.revertedWithCustomError(lazySoccer, 'NotNftOwner');
+                  await expect(
+                      lazySoccer.connect(attacker).lockNftForGame(0),
+                  ).to.be.revertedWithCustomError(lazySoccer, 'NotNftOwner');
               });
           });
 
@@ -130,7 +132,12 @@ const { ZERO_ADDRESS } = require('../constants/common.constants');
               });
 
               it('reverts mint when minter is not in whitelist', async () => {
-                  expect(mintNFT(deployer.address)).to.be.reverted;
+                  expect(
+                      mintNFT(deployer.address),
+                  ).to.be.revertedWithCustomError(
+                      lazySoccer,
+                      'ForbiddenAction',
+                  );
               });
 
               it('mints nft with correct data', async () => {
@@ -157,8 +164,6 @@ const { ZERO_ADDRESS } = require('../constants/common.constants');
                   await giveWhitelistAccess(deployer.address);
                   await lazySoccer.changeBackendSigner(deployer.address);
                   await mintNFT(deployer.address, 2);
-                  await lazySoccer.unlockNftForGame(0);
-                  await lazySoccer.unlockNftForGame(1);
               });
 
               it('can breed own nfts', async () => {
@@ -196,36 +201,65 @@ const { ZERO_ADDRESS } = require('../constants/common.constants');
           });
 
           describe('update nft', () => {
+              const tokenId = 0;
+              const uri = 'ipfs';
+              const finalSkills = [1, 2, 3, 4, 5];
+              const finalUnspentSkills = 5;
+              const hash = ethers.utils.keccak256(
+                  ethers.utils.toUtf8Bytes(
+                      `Update NFT-${tokenId}-${uri}-${finalSkills.join(
+                          '-',
+                      )}-${finalUnspentSkills}`,
+                  ),
+              );
+              let signature;
+
               beforeEach(async () => {
                   await giveWhitelistAccess(deployer.address);
                   await mintNFT(deployer.address);
                   await lazySoccer.unlockNftForGame(0);
+                  await lazySoccer.changeBackendSigner(deployer.address);
+
+                  signature = await deployer.signMessage(
+                      ethers.utils.arrayify(hash),
+                  );
               });
 
               it('can update nft', async () => {
                   const unspentSkillsExpected = 5;
-                  const initialFitnessSkill = (await lazySoccer.nftStats(0))
-                      .fitnessTrainerLVL;
+
+                  const initialFitnessSkill = (
+                      await lazySoccer.nftStats(tokenId)
+                  ).fitnessTrainerLVL;
                   const initialUnspentSkills = await lazySoccer.unspentSkills(
-                      0,
+                      tokenId,
                   );
 
                   await expect(
-                      lazySoccer.updateNft(0, {
-                          marketerLVL: 1,
-                          accountantLVL: 1,
-                          scoutLVL: 1,
-                          coachLVL: 1,
-                          fitnessTrainerLVL: 1,
-                      }),
+                      lazySoccer.updateNft(
+                          tokenId,
+                          {
+                              marketerLVL: 1,
+                              accountantLVL: 1,
+                              scoutLVL: 1,
+                              coachLVL: 1,
+                              fitnessTrainerLVL: 1,
+                          },
+                          uri,
+                          signature,
+                      ),
                   )
                       .to.emit(lazySoccer, 'NFTUpdated')
-                      .withArgs(0, unspentSkillsExpected, [1, 2, 3, 4, 5]);
+                      .withArgs(
+                          tokenId,
+                          unspentSkillsExpected,
+                          finalSkills,
+                          uri,
+                      );
 
                   const finalFitnessSkill = (await lazySoccer.nftStats(0))
                       .fitnessTrainerLVL;
                   const finalUnspentSkills = await lazySoccer.unspentSkills(0);
-                  console.log(finalUnspentSkills);
 
                   assert.equal(
                       finalFitnessSkill.toString() -
@@ -243,42 +277,70 @@ const { ZERO_ADDRESS } = require('../constants/common.constants');
                   const [, attacker] = await ethers.getSigners();
 
                   await expect(
-                      lazySoccer.connect(attacker).updateNft(0, {
-                          marketerLVL: 0,
-                          accountantLVL: 0,
-                          scoutLVL: 0,
-                          coachLVL: 0,
-                          fitnessTrainerLVL: 5,
-                      }),
-                  ).to.be.reverted;
-              });
-
-              it('allows only unlocked nft to be updated', async () => {
-                  await lazySoccer.lockNftForGame(0);
-
-                  await expect(
-                      lazySoccer.updateNft(0, {
-                          marketerLVL: 0,
-                          accountantLVL: 0,
-                          scoutLVL: 0,
-                          coachLVL: 0,
-                          fitnessTrainerLVL: 5,
-                      }),
-                  ).to.be.reverted;
+                      lazySoccer.connect(attacker).updateNft(
+                          tokenId,
+                          {
+                              marketerLVL: 0,
+                              accountantLVL: 0,
+                              scoutLVL: 0,
+                              coachLVL: 0,
+                              fitnessTrainerLVL: 5,
+                          },
+                          uri,
+                          signature,
+                      ),
+                  ).to.be.revertedWithCustomError(lazySoccer, 'NotNftOwner');
               });
 
               it('reverts when not enough unspent skills', async () => {
                   const fakeSkills = 25;
 
                   await expect(
-                      lazySoccer.updateNft(0, {
-                          marketerLVL: 0,
-                          accountantLVL: 0,
-                          scoutLVL: 0,
-                          coachLVL: 0,
-                          fitnessTrainerLVL: fakeSkills,
-                      }),
-                  ).to.be.reverted;
+                      lazySoccer.updateNft(
+                          0,
+                          {
+                              marketerLVL: 0,
+                              accountantLVL: 0,
+                              scoutLVL: 0,
+                              coachLVL: 0,
+                              fitnessTrainerLVL: fakeSkills,
+                          },
+                          uri,
+                          signature,
+                      ),
+                  ).to.be.revertedWithCustomError(
+                      lazySoccer,
+                      'NotEnoughSkills',
+                  );
+              });
+
+              it('reverts on bad signature', async () => {
+                  const finalSkills = [1, 2, 3, 4, 25];
+                  const hash = ethers.utils.keccak256(
+                      ethers.utils.toUtf8Bytes(
+                          `Update NFT-${tokenId}-${uri}-${finalSkills.join(
+                              '-',
+                          )}`,
+                      ),
+                  );
+                  const signature = await deployer.signMessage(
+                      ethers.utils.arrayify(hash),
+                  );
+
+                  await expect(
+                      lazySoccer.updateNft(
+                          tokenId,
+                          {
+                              marketerLVL: 1,
+                              accountantLVL: 1,
+                              scoutLVL: 1,
+                              coachLVL: 1,
+                              fitnessTrainerLVL: 1,
+                          },
+                          uri,
+                          signature,
+                      ),
+                  ).to.be.revertedWithCustomError(lazySoccer, 'BadSignature');
               });
           });
       });
