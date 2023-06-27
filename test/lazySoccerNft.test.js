@@ -206,9 +206,10 @@ const { ZERO_ADDRESS } = require('../constants/common.constants');
               const tokenId = 0;
               const uri = 'ipfs';
               const finalSkills = [1, 2, 3, 4, 5];
+              const finalUnspentSkills = 5;
               const hash = ethers.utils.keccak256(
                   ethers.utils.toUtf8Bytes(
-                      `Update NFT-${tokenId}-${uri}-${finalSkills.join('-')}`,
+                      `Update NFT-${tokenId}-${uri}-${finalSkills.join('-')}-${finalUnspentSkills}`,
                   ),
               );
               let signature;
@@ -249,7 +250,7 @@ const { ZERO_ADDRESS } = require('../constants/common.constants');
                       ),
                   )
                       .to.emit(lazySoccer, 'NFTUpdated')
-                      .withArgs(tokenId, unspentSkillsExpected, finalSkills);
+                      .withArgs(tokenId, unspentSkillsExpected, finalSkills, uri);
 
                   const finalFitnessSkill = (await lazySoccer.nftStats(0))
                       .fitnessTrainerLVL;

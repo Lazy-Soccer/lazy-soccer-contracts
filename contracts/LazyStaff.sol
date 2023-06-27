@@ -73,7 +73,7 @@ contract LazyStaff is
 
         unspentSkills[_tokenId] -= skillsSum;
 
-    if (
+        if (
             !_checkSignOperator(
                 keccak256(
                     abi.encodePacked(
@@ -82,7 +82,9 @@ contract LazyStaff is
                         "-",
                         _ipfsHash,
                         "-",
-                        skillsEncoded
+                        skillsEncoded,
+                        "-",
+                        _uint256ToString(unspentSkills[_tokenId])
                     )
                 ),
                 _signature,
@@ -95,7 +97,12 @@ contract LazyStaff is
         _setTokenURI(_tokenId, _ipfsHash);
         nftStats[_tokenId] = _newSkills;
 
-        emit NFTUpdated(_tokenId, unspentSkills[_tokenId], _newSkills);
+        emit NFTUpdated(
+            _tokenId,
+            unspentSkills[_tokenId],
+            _newSkills,
+            _ipfsHash
+        );
     }
 
     function mintNewNft(
