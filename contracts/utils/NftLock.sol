@@ -20,6 +20,11 @@ abstract contract NftLock is ERC721 {
         _;
     }
 
+    modifier lockedForGame(uint256 tokenId) {
+        require(lockedNftForGame[tokenId], "NFT is not locked");
+        _;
+    }
+
     modifier onlyNftOwner(uint256 tokenId) {
         if (_ownerOf(tokenId) != msg.sender) {
             revert NotNftOwner();

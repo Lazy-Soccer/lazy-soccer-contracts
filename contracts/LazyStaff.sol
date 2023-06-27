@@ -48,7 +48,7 @@ contract LazyStaff is
     function updateNft(
         uint256 tokenId,
         NftSkills memory tokenSkills
-    ) external onlyNftOwner(tokenId) unlockedForGame(tokenId) {
+    ) external onlyNftOwner(tokenId) {
         uint256 skillsSum = tokenSkills.marketerLVL +
             tokenSkills.accountantLVL +
             tokenSkills.scoutLVL +
@@ -102,8 +102,8 @@ contract LazyStaff is
         external
         onlyNftOwner(breedArgs.firstParentTokenId)
         onlyNftOwner(breedArgs.secondParentTokenId)
-        unlockedForGame(breedArgs.firstParentTokenId)
-        unlockedForGame(breedArgs.secondParentTokenId)
+        lockedForGame(breedArgs.firstParentTokenId)
+        lockedForGame(breedArgs.secondParentTokenId)
     {
         if (
             nftRarity[breedArgs.firstParentTokenId] !=
