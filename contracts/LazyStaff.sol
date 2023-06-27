@@ -46,28 +46,56 @@ contract LazyStaff is
     }
 
     function updateNft(
-        uint256 tokenId,
-        NftSkills memory tokenSkills
-    ) external onlyNftOwner(tokenId) {
-        uint256 skillsSum = tokenSkills.marketerLVL +
-            tokenSkills.accountantLVL +
-            tokenSkills.scoutLVL +
-            tokenSkills.coachLVL +
-            tokenSkills.fitnessTrainerLVL;
+        uint256 _tokenId,
+        NftSkills memory _nftSkills,
+        string memory _ipfsHash,
+        bytes memory _signature
+    ) external onlyNftOwner(_tokenId) unlockedForGame(_tokenId) {
+        uint256 skillsSum = _nftSkills.marketerLVL +
+            _nftSkills.accountantLVL +
+            _nftSkills.scoutLVL +
+            _nftSkills.coachLVL +
+            _nftSkills.fitnessTrainerLVL;
 
-        if (skillsSum > unspentSkills[tokenId]) {
+        if (skillsSum > unspentSkills[_tokenId]) {
             revert NotEnoughSkills();
         }
 
-        nftStats[tokenId].marketerLVL += tokenSkills.marketerLVL;
-        nftStats[tokenId].accountantLVL += tokenSkills.accountantLVL;
-        nftStats[tokenId].scoutLVL += tokenSkills.scoutLVL;
-        nftStats[tokenId].coachLVL += tokenSkills.coachLVL;
-        nftStats[tokenId].fitnessTrainerLVL += tokenSkills.fitnessTrainerLVL;
+        NftSkills memory _newSkills = nftStats[_tokenId];
 
-        unspentSkills[tokenId] -= skillsSum;
+        _newSkills.marketerLVL += _nftSkills.marketerLVL;
+        _newSkills.accountantLVL += _nftSkills.accountantLVL;
+        _newSkills.scoutLVL += _nftSkills.scoutLVL;
+        _newSkills.coachLVL += _nftSkills.coachLVL;
+        _newSkills.fitnessTrainerLVL += _nftSkills.fitnessTrainerLVL;
 
-        emit NFTUpdated(tokenId, unspentSkills[tokenId], nftStats[tokenId]);
+        bytes memory skillsEncoded = _encodeSkills(_newSkills);
+
+        unspentSkills[_tokenId] -= skillsSum;
+
+    if (
+            !_checkSignOperator(
+                keccak256(
+                    abi.encodePacked(
+                        "Update NFT-",
+                        _uint256ToString(_tokenId),
+                        "-",
+                        _ipfsHash,
+                        "-",
+                        skillsEncoded
+                    )
+                ),
+                _signature,
+                backendSigner
+            )
+        ) {
+            revert BadSignature();
+        }
+
+        _setTokenURI(_tokenId, _ipfsHash);
+        nftStats[_tokenId] = _newSkills;
+
+        emit NFTUpdated(_tokenId, unspentSkills[_tokenId], _newSkills);
     }
 
     function mintNewNft(
@@ -102,8 +130,8 @@ contract LazyStaff is
         external
         onlyNftOwner(breedArgs.firstParentTokenId)
         onlyNftOwner(breedArgs.secondParentTokenId)
-        lockedForGame(breedArgs.firstParentTokenId)
-        lockedForGame(breedArgs.secondParentTokenId)
+        unlockedForGame(breedArgs.firstParentTokenId)
+        unlockedForGame(breedArgs.secondParentTokenId)
     {
         if (
             nftRarity[breedArgs.firstParentTokenId] !=
@@ -116,17 +144,7 @@ contract LazyStaff is
             revert MaxRarity();
         }
 
-        bytes memory skillsEncoded = abi.encodePacked(
-            _uint256ToString(breedArgs.nftSkills.marketerLVL),
-            "-",
-            _uint256ToString(breedArgs.nftSkills.accountantLVL),
-            "-",
-            _uint256ToString(breedArgs.nftSkills.scoutLVL),
-            "-",
-            _uint256ToString(breedArgs.nftSkills.coachLVL),
-            "-",
-            _uint256ToString(breedArgs.nftSkills.fitnessTrainerLVL)
-        );
+        bytes memory skillsEncoded = _encodeSkills(breedArgs.nftSkills);
 
         if (
             !_checkSignOperator(
@@ -267,5 +285,21 @@ contract LazyStaff is
         delete lockedNftForGame[tokenId];
 
         _burn(tokenId);
+    }
+
+    function _encodeSkills(
+        NftSkills memory skills
+    ) private pure returns (bytes memory skillsEncoded) {
+        skillsEncoded = abi.encodePacked(
+            _uint256ToString(skills.marketerLVL),
+            "-",
+            _uint256ToString(skills.accountantLVL),
+            "-",
+            _uint256ToString(skills.scoutLVL),
+            "-",
+            _uint256ToString(skills.coachLVL),
+            "-",
+            _uint256ToString(skills.fitnessTrainerLVL)
+        );
     }
 }
