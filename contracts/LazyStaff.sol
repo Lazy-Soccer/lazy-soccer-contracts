@@ -8,12 +8,7 @@ import "@openzeppelin/contracts/token/ERC721/extensions/ERC721URIStorage.sol";
 import "./interfaces/ILazyStaff.sol";
 import "./extensions/ERC721Lockable.sol";
 
-contract LazyStaff is
-    ILazyStaff,
-    ERC721URIStorage,
-    ERC721Lockable,
-    EIP712
-{
+contract LazyStaff is ILazyStaff, ERC721URIStorage, ERC721Lockable, EIP712 {
     using ECDSA for bytes32;
 
     mapping(uint256 => uint256) public unspentSkills;
