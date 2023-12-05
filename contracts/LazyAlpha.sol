@@ -2,32 +2,21 @@
 pragma solidity ^0.8.0;
 
 import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
-import "@openzeppelin/contracts/token/ERC721/extensions/ERC721Enumerable.sol";
-import "@openzeppelin/contracts/token/ERC721/extensions/ERC721URIStorage.sol";
-import "@openzeppelin/contracts/access/Ownable.sol";
-import "./utils/NftLock.sol";
+import "./extensions/ERC721Lockable.sol";
 
-contract LazyAlpha is
-    ERC721,
-    NftLock,
-    ERC721Enumerable,
-    ERC721URIStorage,
-    Ownable
-{
-    constructor() ERC721("Lazy Alpha", "LA") {}
+contract LazyAlpha is ERC721, ERC721Lockable {
+    using Strings for uint256;
+
+    constructor() ERC721("Lazy Alpha", "LA") {
+        _grantRole(DEFAULT_ADMIN_ROLE, msg.sender);
+    }
 
     function mintBatch(
         address to,
-        uint256[] calldata tokenIds,
-        string[] calldata tokenURIs
-    ) external onlyOwner {
-        require(tokenIds.length == tokenURIs.length, "Different arr length");
-
-        uint256 length = tokenIds.length;
-
-        for (uint256 i; i < length; ) {
+        uint256[] calldata tokenIds
+    ) external onlyRole(DEFAULT_ADMIN_ROLE) {
+        for (uint256 i; i < tokenIds.length; ) {
             _safeMint(to, tokenIds[i]);
-            _setTokenURI(tokenIds[i], tokenURIs[i]);
 
             unchecked {
                 ++i;
@@ -35,36 +24,23 @@ contract LazyAlpha is
         }
     }
 
-    function transferFrom(
-        address from,
-        address to,
+    function tokenURI(
         uint256 tokenId
-    ) public virtual override unlockedForGame(tokenId) {
-        super.transferFrom(from, to, tokenId);
+    ) public view virtual override returns (string memory) {
+        _requireMinted(tokenId);
+
+        string memory baseURI = _baseURI();
+        return string(abi.encodePacked(baseURI, tokenId.toString(), ".json"));
     }
 
-    function safeTransferFrom(
-        address from,
-        address to,
-        uint256 tokenId
-    ) public virtual override unlockedForGame(tokenId) {
-        super.safeTransferFrom(from, to, tokenId);
+    function supportsInterface(
+        bytes4 interfaceId
+    ) public view override(ERC721, ERC721Lockable) returns (bool) {
+        return super.supportsInterface(interfaceId);
     }
 
-    function safeTransferFrom(
-        address from,
-        address to,
-        uint256 tokenId,
-        bytes memory data
-    ) public virtual override unlockedForGame(tokenId) {
-        super.safeTransferFrom(from, to, tokenId, data);
-    }
-
-    function approve(
-        address to,
-        uint256 tokenId
-    ) public virtual override unlockedForGame(tokenId) {
-        super.approve(to, tokenId);
+    function _baseURI() internal pure override returns (string memory) {
+        return "ipfs://QmRSXsDSSPR9BEchy9qX3gLiq3RANCoy9jA53A5oSGYuRC/";
     }
 
     function _beforeTokenTransfer(
@@ -72,25 +48,7 @@ contract LazyAlpha is
         address to,
         uint256 tokenId,
         uint256 batchSize
-    ) internal override(ERC721, ERC721Enumerable) {
+    ) internal override unlockedForGame(tokenId) {
         super._beforeTokenTransfer(from, to, tokenId, batchSize);
-    }
-
-    function tokenURI(
-        uint256 tokenId
-    ) public view override(ERC721, ERC721URIStorage) returns (string memory) {
-        return super.tokenURI(tokenId);
-    }
-
-    function _burn(
-        uint256 tokenId
-    ) internal override(ERC721, ERC721URIStorage) {
-        super._burn(tokenId);
-    }
-
-    function supportsInterface(
-        bytes4 interfaceId
-    ) public view override(ERC721, ERC721Enumerable) returns (bool) {
-        return super.supportsInterface(interfaceId);
     }
 }

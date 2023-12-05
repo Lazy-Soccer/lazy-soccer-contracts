@@ -3,6 +3,7 @@ const {
     BACKEND_SIGNER,
     WHITELIST_ADDRESSES,
 } = require('../constants/marketplace.constants');
+const { verify } = require('../utils/verify');
 
 async function main() {
     const LazyStaff = await ethers.getContractFactory('LazyStaff');
@@ -13,6 +14,9 @@ async function main() {
     await lazyStaff.deployed();
 
     console.log('LazyStaff deployed to:', lazyStaff.address);
+
+    await new Promise((r) => setTimeout(r, 10000));
+    await verify(lazyStaff.address, args);
 }
 
 main().catch((error) => {

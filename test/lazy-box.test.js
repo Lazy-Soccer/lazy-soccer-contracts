@@ -4,7 +4,7 @@ const { assert, expect } = require('chai');
 
 !developmentChains.includes(network.name)
     ? describe.skip('')
-    : describe('Lazy Boxes NFT unit tests', () => {
+    : describe('LazyBox', () => {
           const ipfsHash = 'hash';
           let deployer, lazyBoxes;
 
@@ -12,7 +12,7 @@ const { assert, expect } = require('chai');
               const accounts = await ethers.getSigners();
               deployer = accounts[0];
 
-              const LazyBoxes = await ethers.getContractFactory('LazyBoxes');
+              const LazyBoxes = await ethers.getContractFactory('LazyBox');
               lazyBoxes = (await LazyBoxes.deploy()).connect(deployer);
           });
 

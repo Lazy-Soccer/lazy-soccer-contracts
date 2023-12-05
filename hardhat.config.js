@@ -9,15 +9,16 @@ const REPORT_GAS = process.env.REPORT_GAS || false;
 const POLYGONSCAN_API_KEY =
     process.env.POLYGONSCAN_API_KEY || 'Your polygonscan API key';
 const PRIVATE_KEY = process.env.PRIVATE_KEY;
+COINMARKETCAP_TOKEN = process.env.COINMARKETCAP_TOKEN;
 
 module.exports = {
     solidity: {
         compilers: [
             {
-                version: '0.8.9',
+                version: '0.8.20',
                 settings: {
                     optimizer: {
-                        enabled: false,
+                        enabled: true,
                         runs: 200,
                     },
                 },
@@ -53,10 +54,14 @@ module.exports = {
         },
     },
     gasReporter: {
-        currency: 'ETH',
+        token: 'MATIC',
+        coinmarketcap: COINMARKETCAP_TOKEN,
         outputFile: `gas-report.txt`,
-        enabled: REPORT_GAS,
+        enabled: true,
         noColors: true,
+        gasPriceApi:
+            'https://api.polygonscan.com/api?module=proxy&action=eth_gasPrice',
+        currency: 'USD',
     },
     mocha: {
         timeout: 200000, // 200 seconds max for running tests
