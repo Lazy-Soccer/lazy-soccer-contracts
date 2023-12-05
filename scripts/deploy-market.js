@@ -3,8 +3,8 @@ const {
     CURRENCY_ADDRESS,
     FEE_WALLET,
     BACKEND_SIGNER,
-    FEE_SECOND_WALLET,
 } = require('../constants/marketplace.constants');
+const { verify } = require('../utils/verify');
 
 async function main() {
     const LazySoccerMarketplace = await ethers.getContractFactory(
@@ -12,7 +12,7 @@ async function main() {
     );
     const args = [
         CURRENCY_ADDRESS,
-        [FEE_WALLET, FEE_SECOND_WALLET],
+        [FEE_WALLET],
         BACKEND_SIGNER,
         [
             process.env.LAZY_STAFF_ADDRESS,
@@ -30,6 +30,9 @@ async function main() {
         },
     );
     console.log('Marketplace deployed to:', marketplace.address);
+
+    await new Promise((r) => setTimeout(r, 30000));
+    await verify(marketplace.address, args);
 }
 
 main().catch((error) => {

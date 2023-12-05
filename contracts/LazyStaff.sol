@@ -1,48 +1,73 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.9;
 
-import "@openzeppelin/contracts/access/Ownable.sol";
+import "@openzeppelin/contracts/utils/cryptography/EIP712.sol";
+import "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 import "@openzeppelin/contracts/token/ERC721/extensions/ERC721URIStorage.sol";
 import "./interfaces/ILazyStaff.sol";
-import "./utils/SignatureResolver.sol";
-import "./utils/NftLock.sol";
+import "./extensions/ERC721Lockable.sol";
 
-contract LazyStaff is
-    ILazyStaff,
-    ERC721URIStorage,
-    SignatureResolver,
-    NftLock,
-    Ownable
-{
+contract LazyStaff is ILazyStaff, ERC721URIStorage, ERC721Lockable, EIP712 {
+    using ECDSA for bytes32;
+
     mapping(uint256 => uint256) public unspentSkills;
     mapping(uint256 => NftSkills) public nftStats;
     mapping(uint256 => StuffNFTRarity) public nftRarity;
     address public backendSigner;
-    address[] public whitelistAddresses;
 
-    error BadSignature();
-    error ForbiddenAction();
-    error MaxRarity();
-    error NotEnoughSkills();
-    error DifferentRarities();
+    string private constant NFT_SKILLS_TYPE =
+        "NftSkills(uint256 marketerLVL,uint256 accountantLVL,uint256 scoutLVL,uint256 coachLVL,uint256 fitnessTrainerLVL)";
+    bytes32 private constant NFT_SKILLS_TYPEHASH =
+        keccak256(abi.encodePacked(NFT_SKILLS_TYPE));
+    bytes32 private constant UPDATE_TYPEHASH =
+        keccak256(
+            abi.encodePacked(
+                "Update("
+                "uint256 tokenId,",
+                "string ipfsHash,",
+                "NftSkills skills,",
+                "uint256 unspentSkills",
+                ")",
+                NFT_SKILLS_TYPE
+            )
+        );
+
+    bytes32 private constant BREED_TYPEHASH =
+        keccak256(
+            abi.encodePacked(
+                "Breed("
+                "uint256 firstParentTokenId,",
+                "uint256 secondParentTokenId,",
+                "uint256 childTokenId,",
+                "string childNftIpfsHash,",
+                "NftSkills skills,",
+                "uint256 unspentSkills",
+                ")",
+                NFT_SKILLS_TYPE
+            )
+        );
+
+    modifier onlyNftOwner(uint256 tokenId) {
+        if (_ownerOf(tokenId) != msg.sender) {
+            revert NotNftOwner();
+        }
+
+        _;
+    }
 
     constructor(
-        address _signer,
-        address[] memory _whitelistAddresses
-    ) ERC721("LAZY STAFF", "LS") {
-        backendSigner = _signer;
-        whitelistAddresses = _whitelistAddresses;
+        address _backendSigner
+    ) ERC721("Lazy Staff", "Lazy Staff") EIP712("Lazy Staff", "1") {
+        backendSigner = _backendSigner;
+
+        _grantRole(DEFAULT_ADMIN_ROLE, msg.sender);
     }
 
-    function changeWhitelistAddresses(
-        address[] memory _whitelistAddresses
-    ) external onlyOwner {
-        whitelistAddresses = _whitelistAddresses;
-    }
-
-    function changeBackendSigner(address _newAddress) external onlyOwner {
-        backendSigner = _newAddress;
+    function changeBackendSigner(
+        address _backendSigner
+    ) external onlyRole(DEFAULT_ADMIN_ROLE) {
+        backendSigner = _backendSigner;
     }
 
     function updateNft(
@@ -56,8 +81,9 @@ contract LazyStaff is
             _nftSkills.scoutLVL +
             _nftSkills.coachLVL +
             _nftSkills.fitnessTrainerLVL;
+        uint256 _unspentSkills = unspentSkills[_tokenId];
 
-        if (skillsSum > unspentSkills[_tokenId]) {
+        if (skillsSum > _unspentSkills) {
             revert NotEnoughSkills();
         }
 
@@ -69,33 +95,27 @@ contract LazyStaff is
         _newSkills.coachLVL += _nftSkills.coachLVL;
         _newSkills.fitnessTrainerLVL += _nftSkills.fitnessTrainerLVL;
 
-        bytes memory skillsEncoded = _encodeSkills(_newSkills);
+        _unspentSkills -= skillsSum;
 
-        unspentSkills[_tokenId] -= skillsSum;
-
-        if (
-            !_checkSignOperator(
-                keccak256(
-                    abi.encodePacked(
-                        "Update NFT-",
-                        _uint256ToString(_tokenId),
-                        "-",
-                        _ipfsHash,
-                        "-",
-                        skillsEncoded,
-                        "-",
-                        _uint256ToString(unspentSkills[_tokenId])
-                    )
-                ),
-                _signature,
-                backendSigner
+        bytes32 hash = _hashTypedDataV4(
+            keccak256(
+                abi.encode(
+                    UPDATE_TYPEHASH,
+                    _tokenId,
+                    keccak256(bytes(_ipfsHash)),
+                    hashSkills(_newSkills),
+                    _unspentSkills
+                )
             )
-        ) {
+        );
+
+        if (hash.recover(_signature) != backendSigner) {
             revert BadSignature();
         }
 
         _setTokenURI(_tokenId, _ipfsHash);
         nftStats[_tokenId] = _newSkills;
+        unspentSkills[_tokenId] = _unspentSkills;
 
         emit NFTUpdated(
             _tokenId,
@@ -112,23 +132,17 @@ contract LazyStaff is
         NftSkills memory _nftSkills,
         uint256 _unspentSkills,
         StuffNFTRarity _rarity
-    ) external {
-        bool doesListContainElement = false;
-        uint256 length = whitelistAddresses.length;
-
-        for (uint256 i = 0; i < length; i++) {
-            if (msg.sender == whitelistAddresses[i]) {
-                doesListContainElement = true;
-
-                break;
-            }
-        }
-
-        if (!doesListContainElement) {
-            revert ForbiddenAction();
-        }
-
+    ) external onlyRole(DEFAULT_ADMIN_ROLE) {
         _mintNft(_to, _tokenId, _ipfsHash, _nftSkills, _unspentSkills, _rarity);
+
+        emit NewNFTMinted(
+            _to,
+            _ipfsHash,
+            _tokenId,
+            _nftSkills,
+            _unspentSkills,
+            _rarity
+        );
     }
 
     function breedNft(
@@ -151,38 +165,28 @@ contract LazyStaff is
             revert MaxRarity();
         }
 
-        bytes memory skillsEncoded = _encodeSkills(breedArgs.nftSkills);
-
-        if (
-            !_checkSignOperator(
-                keccak256(
-                    abi.encodePacked(
-                        "Breed NFT-"
-                        "0x",
-                        _toAsciiString(msg.sender),
-                        "-",
-                        _uint256ToString(breedArgs.firstParentTokenId),
-                        "-",
-                        _uint256ToString(breedArgs.secondParentTokenId),
-                        "-",
-                        _uint256ToString(breedArgs.childTokenId),
-                        "-",
-                        breedArgs.childNftIpfsHash,
-                        "-",
-                        skillsEncoded,
-                        "-",
-                        _uint256ToString(breedArgs.unspentSkills)
-                    )
-                ),
-                breedArgs.signature,
-                backendSigner
+        bytes32 hash = _hashTypedDataV4(
+            keccak256(
+                abi.encode(
+                    BREED_TYPEHASH,
+                    breedArgs.firstParentTokenId,
+                    breedArgs.secondParentTokenId,
+                    breedArgs.childTokenId,
+                    keccak256(bytes(breedArgs.childNftIpfsHash)),
+                    hashSkills(breedArgs.nftSkills),
+                    breedArgs.unspentSkills
+                )
             )
-        ) {
+        );
+
+        if (hash.recover(breedArgs.signature) != backendSigner) {
             revert BadSignature();
         }
 
         uint8 _nftRarity = uint8(nftRarity[breedArgs.firstParentTokenId]) + 1;
 
+        _burnTokenForBreed(breedArgs.firstParentTokenId);
+        _burnTokenForBreed(breedArgs.secondParentTokenId);
         _mintNft(
             msg.sender,
             breedArgs.childTokenId,
@@ -191,9 +195,6 @@ contract LazyStaff is
             breedArgs.unspentSkills,
             StuffNFTRarity(_nftRarity)
         );
-
-        _burnTokenForBreed(breedArgs.firstParentTokenId);
-        _burnTokenForBreed(breedArgs.secondParentTokenId);
 
         emit NFTBreeded(
             msg.sender,
@@ -212,46 +213,27 @@ contract LazyStaff is
             uint256 availableSkills,
             NftSkills memory skills,
             StuffNFTRarity rarity,
-            bool isLocked,
+            bool locked,
             string memory uri
         )
     {
         availableSkills = unspentSkills[tokenId];
         skills = nftStats[tokenId];
         rarity = nftRarity[tokenId];
-        isLocked = lockedNftForGame[tokenId];
+        locked = isLocked[tokenId];
         uri = tokenURI(tokenId);
-    }
-
-    function transferFrom(
-        address from,
-        address to,
-        uint256 tokenId
-    ) public virtual override(ERC721, IERC721) unlockedForGame(tokenId) {
-        super.transferFrom(from, to, tokenId);
-    }
-
-    function safeTransferFrom(
-        address from,
-        address to,
-        uint256 tokenId
-    ) public virtual override(ERC721, IERC721) unlockedForGame(tokenId) {
-        super.safeTransferFrom(from, to, tokenId);
-    }
-
-    function safeTransferFrom(
-        address from,
-        address to,
-        uint256 tokenId,
-        bytes memory data
-    ) public virtual override(ERC721, IERC721) unlockedForGame(tokenId) {
-        super.safeTransferFrom(from, to, tokenId, data);
     }
 
     function tokenURI(
         uint256 tokenId
     ) public view override(ERC721, ERC721URIStorage) returns (string memory) {
         return super.tokenURI(tokenId);
+    }
+
+    function supportsInterface(
+        bytes4 interfaceId
+    ) public view override(ERC721URIStorage, ERC721Lockable) returns (bool) {
+        return super.supportsInterface(interfaceId);
     }
 
     function _burn(
@@ -273,40 +255,40 @@ contract LazyStaff is
         unspentSkills[_tokenId] = _unspentSkills;
         nftStats[_tokenId] = _nftSkills;
         nftRarity[_tokenId] = _rarity;
-        lockedNftForGame[_tokenId] = true;
-
-        emit NewNFTMinted(
-            _to,
-            _ipfsHash,
-            _tokenId,
-            _nftSkills,
-            _unspentSkills,
-            _rarity
-        );
+        isLocked[_tokenId] = true;
     }
 
     function _burnTokenForBreed(uint256 tokenId) private {
         delete unspentSkills[tokenId];
         delete nftStats[tokenId];
         delete nftRarity[tokenId];
-        delete lockedNftForGame[tokenId];
+        delete isLocked[tokenId];
 
         _burn(tokenId);
     }
 
-    function _encodeSkills(
+    function _beforeTokenTransfer(
+        address from,
+        address to,
+        uint256 tokenId,
+        uint256 batchSize
+    ) internal override unlockedForGame(tokenId) {
+        super._beforeTokenTransfer(from, to, tokenId, batchSize);
+    }
+
+    function hashSkills(
         NftSkills memory skills
-    ) private pure returns (bytes memory skillsEncoded) {
-        skillsEncoded = abi.encodePacked(
-            _uint256ToString(skills.marketerLVL),
-            "-",
-            _uint256ToString(skills.accountantLVL),
-            "-",
-            _uint256ToString(skills.scoutLVL),
-            "-",
-            _uint256ToString(skills.coachLVL),
-            "-",
-            _uint256ToString(skills.fitnessTrainerLVL)
-        );
+    ) private pure returns (bytes32) {
+        return
+            keccak256(
+                abi.encode(
+                    NFT_SKILLS_TYPEHASH,
+                    skills.marketerLVL,
+                    skills.accountantLVL,
+                    skills.scoutLVL,
+                    skills.coachLVL,
+                    skills.fitnessTrainerLVL
+                )
+            );
     }
 }
