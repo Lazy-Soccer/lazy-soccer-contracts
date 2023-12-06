@@ -1,13 +1,12 @@
 const { ethers } = require('hardhat');
 const {
     BACKEND_SIGNER,
-    WHITELIST_ADDRESSES,
 } = require('../constants/marketplace.constants');
 const { verify } = require('../utils/verify');
 
 async function main() {
     const LazyStaff = await ethers.getContractFactory('LazyStaff');
-    const args = [BACKEND_SIGNER, WHITELIST_ADDRESSES];
+    const args = [BACKEND_SIGNER];
     console.log('Deploying LazyStaff...');
 
     const lazyStaff = await LazyStaff.deploy(...args);

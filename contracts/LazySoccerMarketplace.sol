@@ -27,6 +27,7 @@ contract LazySoccerMarketplace is
     address[] public feeWallets;
     address public backendSigner;
     mapping(address => bool) public availableCollections;
+    mapping(address => bool) public lockableCollections;
     mapping(address => mapping(uint256 => address)) public listings;
     mapping(address => mapping(uint256 => bool)) private seenNonce;
     uint8 private feeReceiver;
@@ -80,12 +81,14 @@ contract LazySoccerMarketplace is
         address indexed seller,
         address collection,
         uint256 price,
-        CurrencyType currency
+        CurrencyType currency,
+        uint256 nonce
     );
     event InGameAssetSold(
         address indexed buyer,
         address indexed inGameAssetOwner,
-        uint256 transferId
+        uint256 transferId,
+        uint256 nonce
     );
 
     modifier onlyAvailableCollections(address collection) {
@@ -97,14 +100,21 @@ contract LazySoccerMarketplace is
         IERC20 _currencyContract,
         address[] calldata _feeWallets,
         address _backendSigner,
-        address[] memory _availableCollections
+        address[] memory _availableCollections,
+        bool[] memory _lockableCollections
     ) public initializer {
+        require(
+            _availableCollections.length == _lockableCollections.length,
+            "Invalid collections wallets length"
+        );
+
         currencyContract = _currencyContract;
         feeWallets = _feeWallets;
         backendSigner = _backendSigner;
 
         for (uint256 i; i < _availableCollections.length; ) {
             availableCollections[_availableCollections[i]] = true;
+            lockableCollections[_availableCollections[i]] = _lockableCollections[i];
 
             unchecked {
                 ++i;
@@ -142,8 +152,9 @@ contract LazySoccerMarketplace is
         feeReceiver = 0;
     }
 
-    function addCollection(address _collection) external onlyOwner {
+    function addCollection(address _collection, bool _lockable) external onlyOwner {
         availableCollections[_collection] = true;
+        lockableCollections[_collection] = _lockable;
     }
 
     function removeCollection(address _collection) external onlyOwner {
@@ -154,15 +165,17 @@ contract LazySoccerMarketplace is
         uint256 tokenId,
         address collection
     ) external whenNotPaused onlyAvailableCollections(collection) {
-        _listItem(tokenId, collection);
+        _listItem(tokenId, collection, lockableCollections[collection]);
     }
 
     function listBatch(
         uint256[] calldata tokenIds,
         address collection
     ) external whenNotPaused onlyAvailableCollections(collection) {
+        bool lockable = lockableCollections[collection];
+
         for (uint256 i; i < tokenIds.length; ) {
-            _listItem(tokenIds[i], collection);
+            _listItem(tokenIds[i], collection, lockable);
 
             unchecked {
                 ++i;
@@ -174,15 +187,17 @@ contract LazySoccerMarketplace is
         uint256 tokenId,
         address collection
     ) external whenNotPaused {
-        _cancelListing(tokenId, collection);
+        _cancelListing(tokenId, collection, lockableCollections[collection]);
     }
 
     function batchCancelListing(
         uint256[] calldata tokenIds,
         address collection
     ) external whenNotPaused {
+        bool lockable = lockableCollections[collection];
+
         for (uint256 i; i < tokenIds.length; ) {
-            _cancelListing(tokenIds[i], collection);
+            _cancelListing(tokenIds[i], collection, lockable);
 
             unchecked {
                 ++i;
@@ -201,6 +216,7 @@ contract LazySoccerMarketplace is
         bytes memory signature
     ) external payable whenNotPaused onlyAvailableCollections(collection) {
         _buyItem(
+            lockableCollections[collection],
             tokenId,
             collection,
             nftPrice,
@@ -259,8 +275,11 @@ contract LazySoccerMarketplace is
             );
         }
 
+        bool lockable = lockableCollections[collection];
+
         for (uint256 i; i < tokenIds.length; ) {
             _buyItem(
+                lockable,
                 tokenIds[i],
                 collection,
                 nftPrices[i],
@@ -357,6 +376,7 @@ contract LazySoccerMarketplace is
     }
 
     function _buyItem(
+        bool lockable,
         uint256 tokenId,
         address collection,
         uint256 nftPrice,
@@ -401,7 +421,9 @@ contract LazySoccerMarketplace is
             msg.sender,
             tokenId
         );
-        ERC721Lockable(collection).lockNftForGame(tokenId);
+        if(lockable) {
+            ERC721Lockable(collection).lockNftForGame(tokenId);
+        }
 
         emit ItemBought(
             tokenId,
@@ -409,7 +431,8 @@ contract LazySoccerMarketplace is
             nftOwner,
             collection,
             nftPrice,
-            currency
+            currency,
+            nonce
         );
     }
 
@@ -449,13 +472,13 @@ contract LazySoccerMarketplace is
 
         _sendFunds(inGameAssetOwner, currency, price, transactionFee);
 
-        emit InGameAssetSold(msg.sender, inGameAssetOwner, transferId);
+        emit InGameAssetSold(msg.sender, inGameAssetOwner, transferId, nonce);
     }
 
-    function _listItem(uint256 tokenId, address collection) private {
+    function _listItem(uint256 tokenId, address collection, bool lockable) private {
         require(listings[collection][tokenId] == address(0), "Already listed");
 
-        if (ERC721Lockable(collection).isLocked(tokenId)) {
+        if (lockable && ERC721Lockable(collection).isLocked(tokenId)) {
             ERC721Lockable(collection).unlockNftForGame(tokenId);
         }
 
@@ -469,7 +492,7 @@ contract LazySoccerMarketplace is
         emit ItemListed(tokenId, msg.sender, collection);
     }
 
-    function _cancelListing(uint256 tokenId, address collection) private {
+    function _cancelListing(uint256 tokenId, address collection, bool lockable) private {
         require(
             listings[collection][tokenId] == msg.sender,
             "No access to listing"
@@ -482,7 +505,10 @@ contract LazySoccerMarketplace is
             msg.sender,
             tokenId
         );
-        ERC721Lockable(collection).lockNftForGame(tokenId);
+
+        if(lockable) {
+            ERC721Lockable(collection).lockNftForGame(tokenId);
+        }
 
         emit ListingCanceled(tokenId, msg.sender, collection);
     }

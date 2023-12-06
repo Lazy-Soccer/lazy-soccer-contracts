@@ -11,7 +11,7 @@ const { getRandomInt } = require('../utils/math');
 
 !developmentChains.includes(network.name)
     ? describe.skip('')
-    : describe.only('LazySoccerMarketplace', () => {
+    : describe('LazySoccerMarketplace', () => {
           let deployer, marketplace, lazyStaff, domain;
 
           async function mintNFT(address, tokenId = 0) {
@@ -67,6 +67,7 @@ const { getRandomInt } = require('../utils/math');
                   [FEE_WALLET, FEE_SECOND_WALLET],
                   deployer.address,
                   [lazyStaff.address],
+                  [true]
               ];
 
               marketplace = (
@@ -120,7 +121,7 @@ const { getRandomInt } = require('../utils/math');
                   await expect(
                       marketplace.changeCurrencyAddress(attacker.address),
                   ).to.be.reverted;
-                  await expect(marketplace.addCollection(lazyStaff.address)).to
+                  await expect(marketplace.addCollection(lazyStaff.address, true)).to
                       .be.reverted;
                   await expect(marketplace.removeCollection(lazyStaff.address))
                       .to.be.reverted;
@@ -151,7 +152,7 @@ const { getRandomInt } = require('../utils/math');
               });
 
               it('can add nft collection', async () => {
-                  await marketplace.addCollection(lazyStaff.address);
+                  await marketplace.addCollection(lazyStaff.address, true);
 
                   const collectionAvailable =
                       await marketplace.availableCollections(lazyStaff.address);
@@ -688,7 +689,6 @@ const { getRandomInt } = require('../utils/math');
                       const value = {
                           buyer: buyerAddress,
                           owner: owners[i],
-                          collection: lazyStaff.address,
                           transferId: tokenIds[i],
                           currency,
                           price: prices[i],
