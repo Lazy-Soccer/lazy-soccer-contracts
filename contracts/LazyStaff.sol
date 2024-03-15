@@ -3,6 +3,7 @@ pragma solidity ^0.8.9;
 
 import "@openzeppelin/contracts/utils/cryptography/EIP712.sol";
 import "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
+import "@openzeppelin/contracts/utils/Strings.sol";
 import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 import "@openzeppelin/contracts/token/ERC721/extensions/ERC721URIStorage.sol";
 import "./interfaces/ILazyStaff.sol";
@@ -10,14 +11,17 @@ import "./extensions/ERC721Lockable.sol";
 
 contract LazyStaff is ILazyStaff, ERC721URIStorage, ERC721Lockable, EIP712 {
     using ECDSA for bytes32;
+    using Strings for uint256;
 
     mapping(uint256 => uint256) public unspentSkills;
     mapping(uint256 => NftSkills) public nftStats;
-    mapping(uint256 => StuffNFTRarity) public nftRarity;
+    mapping(uint256 => StaffNFTRarity) public nftRarity;
     address public backendSigner;
+    string public baseURI;
 
+    bytes32 public constant MINTER_ROLE = keccak256("MINTER_ROLE");
     string private constant NFT_SKILLS_TYPE =
-        "NftSkills(uint256 marketerLVL,uint256 accountantLVL,uint256 scoutLVL,uint256 coachLVL,uint256 fitnessTrainerLVL)";
+        "NftSkills(uint256 medicine,uint256 accounting,uint256 scouting,uint256 coaching,uint256 physiotherapy)";
     bytes32 private constant NFT_SKILLS_TYPEHASH =
         keccak256(abi.encodePacked(NFT_SKILLS_TYPE));
     bytes32 private constant UPDATE_TYPEHASH =
@@ -64,6 +68,22 @@ contract LazyStaff is ILazyStaff, ERC721URIStorage, ERC721Lockable, EIP712 {
         _grantRole(DEFAULT_ADMIN_ROLE, msg.sender);
     }
 
+    function changeBaseURI(
+        string memory _newURI
+    ) external onlyRole(DEFAULT_ADMIN_ROLE) {
+        baseURI = _newURI;
+    }
+
+    function tokenURI(uint256 tokenId) public view override(ERC721, ERC721URIStorage) returns (string memory) {
+        string memory uri = super.tokenURI(tokenId);
+
+        if (bytes(uri).length == 0) {
+            return string(abi.encodePacked(baseURI, tokenId.toString()));
+        }
+
+        return uri;
+    }
+
     function changeBackendSigner(
         address _backendSigner
     ) external onlyRole(DEFAULT_ADMIN_ROLE) {
@@ -76,11 +96,11 @@ contract LazyStaff is ILazyStaff, ERC721URIStorage, ERC721Lockable, EIP712 {
         string memory _ipfsHash,
         bytes memory _signature
     ) external onlyNftOwner(_tokenId) {
-        uint256 skillsSum = _nftSkills.marketerLVL +
-            _nftSkills.accountantLVL +
-            _nftSkills.scoutLVL +
-            _nftSkills.coachLVL +
-            _nftSkills.fitnessTrainerLVL;
+        uint256 skillsSum = _nftSkills.medicine +
+            _nftSkills.accounting +
+            _nftSkills.scouting +
+            _nftSkills.coaching +
+            _nftSkills.physiotherapy;
         uint256 _unspentSkills = unspentSkills[_tokenId];
 
         if (skillsSum > _unspentSkills) {
@@ -89,11 +109,11 @@ contract LazyStaff is ILazyStaff, ERC721URIStorage, ERC721Lockable, EIP712 {
 
         NftSkills memory _newSkills = nftStats[_tokenId];
 
-        _newSkills.marketerLVL += _nftSkills.marketerLVL;
-        _newSkills.accountantLVL += _nftSkills.accountantLVL;
-        _newSkills.scoutLVL += _nftSkills.scoutLVL;
-        _newSkills.coachLVL += _nftSkills.coachLVL;
-        _newSkills.fitnessTrainerLVL += _nftSkills.fitnessTrainerLVL;
+        _newSkills.medicine += _nftSkills.medicine;
+        _newSkills.accounting += _nftSkills.accounting;
+        _newSkills.scouting += _nftSkills.scouting;
+        _newSkills.coaching += _nftSkills.coaching;
+        _newSkills.physiotherapy += _nftSkills.physiotherapy;
 
         _unspentSkills -= skillsSum;
 
@@ -131,9 +151,10 @@ contract LazyStaff is ILazyStaff, ERC721URIStorage, ERC721Lockable, EIP712 {
         string memory _ipfsHash,
         NftSkills memory _nftSkills,
         uint256 _unspentSkills,
-        StuffNFTRarity _rarity
-    ) external onlyRole(DEFAULT_ADMIN_ROLE) {
-        _mintNft(_to, _tokenId, _ipfsHash, _nftSkills, _unspentSkills, _rarity);
+        StaffNFTRarity _rarity,
+        bool _isLocked
+    ) external onlyRole(MINTER_ROLE) {
+        _mintNft(_to, _tokenId, _ipfsHash, _nftSkills, _unspentSkills, _rarity, _isLocked);
 
         emit NewNFTMinted(
             _to,
@@ -161,7 +182,7 @@ contract LazyStaff is ILazyStaff, ERC721URIStorage, ERC721Lockable, EIP712 {
             revert DifferentRarities();
         }
 
-        if (nftRarity[breedArgs.firstParentTokenId] > StuffNFTRarity.Epic) {
+        if (nftRarity[breedArgs.firstParentTokenId] > StaffNFTRarity.Epic) {
             revert MaxRarity();
         }
 
@@ -193,7 +214,8 @@ contract LazyStaff is ILazyStaff, ERC721URIStorage, ERC721Lockable, EIP712 {
             breedArgs.childNftIpfsHash,
             breedArgs.nftSkills,
             breedArgs.unspentSkills,
-            StuffNFTRarity(_nftRarity)
+            StaffNFTRarity(_nftRarity),
+            true
         );
 
         emit NFTBreeded(
@@ -212,7 +234,7 @@ contract LazyStaff is ILazyStaff, ERC721URIStorage, ERC721Lockable, EIP712 {
         returns (
             uint256 availableSkills,
             NftSkills memory skills,
-            StuffNFTRarity rarity,
+            StaffNFTRarity rarity,
             bool locked,
             string memory uri
         )
@@ -222,12 +244,6 @@ contract LazyStaff is ILazyStaff, ERC721URIStorage, ERC721Lockable, EIP712 {
         rarity = nftRarity[tokenId];
         locked = isLocked[tokenId];
         uri = tokenURI(tokenId);
-    }
-
-    function tokenURI(
-        uint256 tokenId
-    ) public view override(ERC721, ERC721URIStorage) returns (string memory) {
-        return super.tokenURI(tokenId);
     }
 
     function supportsInterface(
@@ -248,14 +264,15 @@ contract LazyStaff is ILazyStaff, ERC721URIStorage, ERC721Lockable, EIP712 {
         string memory _ipfsHash,
         NftSkills memory _nftSkills,
         uint256 _unspentSkills,
-        StuffNFTRarity _rarity
+        StaffNFTRarity _rarity,
+        bool _isLocked
     ) private {
         _safeMint(_to, _tokenId);
         _setTokenURI(_tokenId, _ipfsHash);
         unspentSkills[_tokenId] = _unspentSkills;
         nftStats[_tokenId] = _nftSkills;
         nftRarity[_tokenId] = _rarity;
-        isLocked[_tokenId] = true;
+        isLocked[_tokenId] = _isLocked;
     }
 
     function _burnTokenForBreed(uint256 tokenId) private {
@@ -283,11 +300,11 @@ contract LazyStaff is ILazyStaff, ERC721URIStorage, ERC721Lockable, EIP712 {
             keccak256(
                 abi.encode(
                     NFT_SKILLS_TYPEHASH,
-                    skills.marketerLVL,
-                    skills.accountantLVL,
-                    skills.scoutLVL,
-                    skills.coachLVL,
-                    skills.fitnessTrainerLVL
+                    skills.medicine,
+                    skills.accounting,
+                    skills.scouting,
+                    skills.coaching,
+                    skills.physiotherapy
                 )
             );
     }

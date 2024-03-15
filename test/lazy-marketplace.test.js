@@ -20,21 +20,25 @@ const { getRandomInt } = require('../utils/math');
                   tokenId,
                   'hash',
                   {
-                      marketerLVL: 0,
-                      accountantLVL: 1,
-                      scoutLVL: 2,
-                      coachLVL: 3,
-                      fitnessTrainerLVL: 4,
+                      medicine: 0,
+                      accounting: 1,
+                      scouting: 2,
+                      coaching: 3,
+                      physiotherapy: 4,
                   },
                   10,
                   0,
+                  true
               );
               await lazyStaff.unlockNftForGame(tokenId);
           }
 
           async function giveWhitelistAccess(address) {
               const adminRole = await lazyStaff.DEFAULT_ADMIN_ROLE();
+              const minterRole = await lazyStaff.MINTER_ROLE();
+
               await lazyStaff.grantRole(adminRole, address);
+              await lazyStaff.grantRole(minterRole, address);
           }
 
           async function getDeadlineTimestamp() {

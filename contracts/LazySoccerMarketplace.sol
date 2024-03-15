@@ -1,12 +1,13 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.9;
 
-import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts-upgradeable/utils/cryptography/EIP712Upgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/security/PausableUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/token/ERC20/utils/SafeERC20Upgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.sol";
 import "./extensions/ERC721Lockable.sol";
 
 contract LazySoccerMarketplace is
@@ -14,8 +15,10 @@ contract LazySoccerMarketplace is
     UUPSUpgradeable,
     OwnableUpgradeable,
     PausableUpgradeable,
+    ReentrancyGuardUpgradeable,
     EIP712Upgradeable
 {
+    using SafeERC20Upgradeable for IERC20Upgradeable;
     using ECDSAUpgradeable for bytes32;
 
     enum CurrencyType {
@@ -23,7 +26,7 @@ contract LazySoccerMarketplace is
         ERC20
     }
 
-    IERC20 public currencyContract;
+    IERC20Upgradeable public currencyContract;
     address[] public feeWallets;
     address public backendSigner;
     mapping(address => bool) public availableCollections;
@@ -97,7 +100,7 @@ contract LazySoccerMarketplace is
     }
 
     function initialize(
-        IERC20 _currencyContract,
+        IERC20Upgradeable _currencyContract,
         address[] calldata _feeWallets,
         address _backendSigner,
         address[] memory _availableCollections,
@@ -124,6 +127,7 @@ contract LazySoccerMarketplace is
         __UUPSUpgradeable_init();
         __Ownable_init();
         __Pausable_init();
+        __ReentrancyGuard_init();
         __EIP712_init("Lazy Soccer Marketplace", "1");
     }
 
@@ -136,7 +140,7 @@ contract LazySoccerMarketplace is
     }
 
     function changeCurrencyAddress(
-        IERC20 _currencyContract
+        IERC20Upgradeable _currencyContract
     ) external onlyOwner {
         currencyContract = _currencyContract;
     }
@@ -171,7 +175,7 @@ contract LazySoccerMarketplace is
     function listBatch(
         uint256[] calldata tokenIds,
         address collection
-    ) external whenNotPaused onlyAvailableCollections(collection) {
+    ) external whenNotPaused onlyAvailableCollections(collection) nonReentrant {
         bool lockable = lockableCollections[collection];
 
         for (uint256 i; i < tokenIds.length; ) {
@@ -214,7 +218,7 @@ contract LazySoccerMarketplace is
         uint256 deadline,
         uint256 nonce,
         bytes memory signature
-    ) external payable whenNotPaused onlyAvailableCollections(collection) {
+    ) external payable whenNotPaused onlyAvailableCollections(collection) nonReentrant {
         _buyItem(
             lockableCollections[collection],
             tokenId,
@@ -237,7 +241,7 @@ contract LazySoccerMarketplace is
         CurrencyType currency,
         address inGameAssetOwner,
         bytes memory signature
-    ) external payable whenNotPaused {
+    ) external payable whenNotPaused nonReentrant {
         _buyInGameAsset(
             transferId,
             price,
@@ -259,7 +263,7 @@ contract LazySoccerMarketplace is
         uint256 deadline,
         uint256[] memory nonces,
         bytes[] memory signatures
-    ) external payable whenNotPaused onlyAvailableCollections(collection) {
+    ) external payable whenNotPaused onlyAvailableCollections(collection) nonReentrant {
         require(
             tokenIds.length == nftPrices.length &&
                 tokenIds.length == fees.length &&
@@ -305,7 +309,7 @@ contract LazySoccerMarketplace is
         CurrencyType currency,
         address[] memory inGameAssetOwners,
         bytes[] memory signatures
-    ) external payable whenNotPaused {
+    ) external payable whenNotPaused nonReentrant {
         require(
             transferIds.length == prices.length &&
                 transferIds.length == transactionFees.length &&
@@ -351,8 +355,8 @@ contract LazySoccerMarketplace is
         uint256 fee
     ) private {
         if (currency == CurrencyType.ERC20) {
-            currencyContract.transferFrom(msg.sender, to, price);
-            currencyContract.transferFrom(
+            currencyContract.safeTransferFrom(msg.sender, to, price);
+            currencyContract.safeTransferFrom(
                 msg.sender,
                 feeWallets[feeReceiver],
                 fee
@@ -414,8 +418,6 @@ contract LazySoccerMarketplace is
         seenNonce[msg.sender][nonce] = true;
         delete listings[collection][tokenId];
 
-        _sendFunds(nftOwner, currency, nftPrice, fee);
-
         ERC721Lockable(collection).safeTransferFrom(
             address(this),
             msg.sender,
@@ -424,6 +426,8 @@ contract LazySoccerMarketplace is
         if(lockable) {
             ERC721Lockable(collection).lockNftForGame(tokenId);
         }
+
+        _sendFunds(nftOwner, currency, nftPrice, fee);
 
         emit ItemBought(
             tokenId,

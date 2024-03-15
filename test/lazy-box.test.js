@@ -18,7 +18,7 @@ const { assert, expect } = require('chai');
 
           describe('minting', () => {
               it('can mint nft', async () => {
-                  const tokenId = 0;
+                  const tokenId = 1;
 
                   await lazyBoxes.safeMint(deployer.address, ipfsHash);
                   assert.equal(
@@ -41,7 +41,7 @@ const { assert, expect } = require('chai');
 
           describe('box opening', () => {
               it('burns box and emits an event', async () => {
-                  const tokenId = 0;
+                  const tokenId = 1;
                   await lazyBoxes.safeMint(deployer.address, ipfsHash);
 
                   await expect(lazyBoxes.openBox(tokenId))

@@ -15,21 +15,26 @@ const { ZERO_ADDRESS } = require('../constants/common.constants');
                       i,
                       'hash',
                       {
-                          marketerLVL: 0,
-                          accountantLVL: 1,
-                          scoutLVL: 2,
-                          coachLVL: 3,
-                          fitnessTrainerLVL: 4,
+                          medicine: 0,
+                          accounting: 1,
+                          scouting: 2,
+                          coaching: 3,
+                          physiotherapy: 4,
                       },
                       10,
                       0,
+                      true
                   );
               }
           }
 
           async function giveWhitelistAccess(address) {
               const adminRole = await lazyStaff.DEFAULT_ADMIN_ROLE();
+              const minterRole = await lazyStaff.MINTER_ROLE();
+
               await lazyStaff.grantRole(adminRole, address);
+              await lazyStaff.grantRole(minterRole, address);
+
           }
 
           beforeEach(async () => {
@@ -145,11 +150,11 @@ const { ZERO_ADDRESS } = require('../constants/common.constants');
                   assert.equal(unspentSkills.toString(), '10');
                   assert.equal(hash, 'hash');
                   assert.equal(unspentSkills.toString(), '10');
-                  assert.equal(nftStats.marketerLVL.toString(), '0');
-                  assert.equal(nftStats.accountantLVL.toString(), '1');
-                  assert.equal(nftStats.scoutLVL.toString(), '2');
-                  assert.equal(nftStats.coachLVL.toString(), '3');
-                  assert.equal(nftStats.fitnessTrainerLVL.toString(), '4');
+                  assert.equal(nftStats.medicine.toString(), '0');
+                  assert.equal(nftStats.accounting.toString(), '1');
+                  assert.equal(nftStats.scouting.toString(), '2');
+                  assert.equal(nftStats.coaching.toString(), '3');
+                  assert.equal(nftStats.physiotherapy.toString(), '4');
               });
           });
 
@@ -171,11 +176,11 @@ const { ZERO_ADDRESS } = require('../constants/common.constants');
                           { name: 'unspentSkills', type: 'uint256' },
                       ],
                       NftSkills: [
-                          { name: 'marketerLVL', type: 'uint256' },
-                          { name: 'accountantLVL', type: 'uint256' },
-                          { name: 'scoutLVL', type: 'uint256' },
-                          { name: 'coachLVL', type: 'uint256' },
-                          { name: 'fitnessTrainerLVL', type: 'uint256' },
+                          { name: 'medicine', type: 'uint256' },
+                          { name: 'accounting', type: 'uint256' },
+                          { name: 'scouting', type: 'uint256' },
+                          { name: 'coaching', type: 'uint256' },
+                          { name: 'physiotherapy', type: 'uint256' },
                       ],
                   };
 
@@ -185,11 +190,11 @@ const { ZERO_ADDRESS } = require('../constants/common.constants');
                       childTokenId: 2,
                       childNftIpfsHash: 'ipfs',
                       skills: {
-                          marketerLVL: 1,
-                          accountantLVL: 2,
-                          scoutLVL: 3,
-                          coachLVL: 4,
-                          fitnessTrainerLVL: 5,
+                          medicine: 1,
+                          accounting: 2,
+                          scouting: 3,
+                          coaching: 4,
+                          physiotherapy: 5,
                       },
                       unspentSkills: 0,
                   };
@@ -248,11 +253,11 @@ const { ZERO_ADDRESS } = require('../constants/common.constants');
                           { name: 'unspentSkills', type: 'uint256' },
                       ],
                       NftSkills: [
-                          { name: 'marketerLVL', type: 'uint256' },
-                          { name: 'accountantLVL', type: 'uint256' },
-                          { name: 'scoutLVL', type: 'uint256' },
-                          { name: 'coachLVL', type: 'uint256' },
-                          { name: 'fitnessTrainerLVL', type: 'uint256' },
+                          { name: 'medicine', type: 'uint256' },
+                          { name: 'accounting', type: 'uint256' },
+                          { name: 'scouting', type: 'uint256' },
+                          { name: 'coaching', type: 'uint256' },
+                          { name: 'physiotherapy', type: 'uint256' },
                       ],
                   };
 
@@ -260,11 +265,11 @@ const { ZERO_ADDRESS } = require('../constants/common.constants');
                       tokenId: tokenId,
                       ipfsHash: uri,
                       skills: {
-                          marketerLVL: 1,
-                          accountantLVL: 2,
-                          scoutLVL: 3,
-                          coachLVL: 4,
-                          fitnessTrainerLVL: 5,
+                          medicine: 1,
+                          accounting: 2,
+                          scouting: 3,
+                          coaching: 4,
+                          physiotherapy: 5,
                       },
                       unspentSkills: finalUnspentSkills,
                   };
@@ -281,7 +286,7 @@ const { ZERO_ADDRESS } = require('../constants/common.constants');
 
                   const initialFitnessSkill = (
                       await lazyStaff.nftStats(tokenId)
-                  ).fitnessTrainerLVL;
+                  ).physiotherapy;
                   const initialUnspentSkills = await lazyStaff.unspentSkills(
                       tokenId,
                   );
@@ -290,11 +295,11 @@ const { ZERO_ADDRESS } = require('../constants/common.constants');
                       lazyStaff.updateNft(
                           tokenId,
                           {
-                              marketerLVL: 1,
-                              accountantLVL: 1,
-                              scoutLVL: 1,
-                              coachLVL: 1,
-                              fitnessTrainerLVL: 1,
+                              medicine: 1,
+                              accounting: 1,
+                              scouting: 1,
+                              coaching: 1,
+                              physiotherapy: 1,
                           },
                           uri,
                           signature,
@@ -309,7 +314,7 @@ const { ZERO_ADDRESS } = require('../constants/common.constants');
                       );
 
                   const finalFitnessSkill = (await lazyStaff.nftStats(0))
-                      .fitnessTrainerLVL;
+                      .physiotherapy;
                   const finalUnspentSkills = await lazyStaff.unspentSkills(0);
 
                   assert.equal(
@@ -331,11 +336,11 @@ const { ZERO_ADDRESS } = require('../constants/common.constants');
                       lazyStaff.connect(attacker).updateNft(
                           tokenId,
                           {
-                              marketerLVL: 0,
-                              accountantLVL: 0,
-                              scoutLVL: 0,
-                              coachLVL: 0,
-                              fitnessTrainerLVL: 5,
+                              medicine: 0,
+                              accounting: 0,
+                              scouting: 0,
+                              coaching: 0,
+                              physiotherapy: 5,
                           },
                           uri,
                           signature,
@@ -350,11 +355,11 @@ const { ZERO_ADDRESS } = require('../constants/common.constants');
                       lazyStaff.updateNft(
                           0,
                           {
-                              marketerLVL: 0,
-                              accountantLVL: 0,
-                              scoutLVL: 0,
-                              coachLVL: 0,
-                              fitnessTrainerLVL: fakeSkills,
+                              medicine: 0,
+                              accounting: 0,
+                              scouting: 0,
+                              coaching: 0,
+                              physiotherapy: fakeSkills,
                           },
                           uri,
                           signature,
@@ -374,11 +379,11 @@ const { ZERO_ADDRESS } = require('../constants/common.constants');
                       lazyStaff.updateNft(
                           tokenId,
                           {
-                              marketerLVL: 1,
-                              accountantLVL: 1,
-                              scoutLVL: 1,
-                              coachLVL: 1,
-                              fitnessTrainerLVL: 1,
+                              medicine: 1,
+                              accounting: 1,
+                              scouting: 1,
+                              coaching: 1,
+                              physiotherapy: 1,
                           },
                           uri,
                           signature,

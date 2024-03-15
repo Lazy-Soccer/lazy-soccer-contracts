@@ -36,7 +36,8 @@ async function main() {
             initializer: 'initialize',
         },
     );
-    console.log('Marketplace deployed to:', marketplace.address);
+
+    console.log('Marketplace deployed to:', marketplace.address, marketplace.implementation.address);
 
     for(const nft of NFTS) {
         const index = NFTS.indexOf(nft);
@@ -51,6 +52,10 @@ async function main() {
     }
 
     await new Promise((r) => setTimeout(r, 30000));
+
+    const currentImplAddress = await upgrades.erc1967.getImplementationAddress(marketplace.address);
+
+    await verify(currentImplAddress, args);
     await verify(marketplace.address, args);
 }
 
