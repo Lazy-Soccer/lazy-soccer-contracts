@@ -1,4 +1,5 @@
 const { ethers } = require('hardhat');
+const { verify } = require('../utils/verify');
 
 async function main() {
     const LazyAlpha = await ethers.getContractFactory('LazyAlpha');
@@ -9,6 +10,9 @@ async function main() {
     await alphaNft.deployed();
 
     console.log('LazyAlpha deployed to:', alphaNft.address);
+
+    await new Promise((r) => setTimeout(r, 10000));
+    await verify(alphaNft.address);
 }
 
 main().catch((error) => {

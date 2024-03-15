@@ -2,35 +2,40 @@
 pragma solidity ^0.8.9;
 
 import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
+import "@openzeppelin/contracts/access/AccessControl.sol";
 
-abstract contract NftLock is ERC721 {
-    mapping(uint256 => bool) public lockedNftForGame;
+abstract contract ERC721Lockable is ERC721, AccessControl {
+    bytes32 public constant LOCKER = keccak256("LOCKER");
+    mapping(uint256 => bool) public isLocked;
 
     event NFTLockedForGame(uint256 indexed tokenId);
     event NFTUnlockedForGame(uint256 indexed tokenId);
 
     error NftLocked();
     error NftUnlocked();
-    error NotNftOwner();
+    error LockNotAccessible();
 
     modifier unlockedForGame(uint256 tokenId) {
-        if (lockedNftForGame[tokenId]) {
+        if (isLocked[tokenId]) {
             revert NftLocked();
         }
         _;
     }
 
     modifier lockedForGame(uint256 tokenId) {
-        if (!lockedNftForGame[tokenId]) {
+        if (!isLocked[tokenId]) {
             revert NftUnlocked();
         }
         _;
     }
 
-    modifier onlyNftOwner(uint256 tokenId) {
-        if (_ownerOf(tokenId) != msg.sender) {
-            revert NotNftOwner();
+    modifier hasLockAccess(uint256 tokenId) {
+        address sender = _msgSender();
+
+        if (_ownerOf(tokenId) != sender && !hasRole(LOCKER, sender)) {
+            revert LockNotAccessible();
         }
+
         _;
     }
 
@@ -39,9 +44,7 @@ abstract contract NftLock is ERC721 {
     }
 
     function unlockBatch(uint256[] calldata tokenIds) external {
-        uint256 length = tokenIds.length;
-
-        for (uint256 i; i < length; ) {
+        for (uint256 i; i < tokenIds.length; ) {
             _unlockNftForGame(tokenIds[i]);
 
             unchecked {
@@ -55,9 +58,7 @@ abstract contract NftLock is ERC721 {
     }
 
     function lockBatch(uint256[] calldata tokenIds) external {
-        uint256 length = tokenIds.length;
-
-        for (uint256 i; i < length; ) {
+        for (uint256 i; i < tokenIds.length; ) {
             _lockNftForGame(tokenIds[i]);
 
             unchecked {
@@ -66,18 +67,24 @@ abstract contract NftLock is ERC721 {
         }
     }
 
+    function supportsInterface(
+        bytes4 interfaceId
+    ) public view virtual override(ERC721, AccessControl) returns (bool) {
+        return super.supportsInterface(interfaceId);
+    }
+
     function _lockNftForGame(
         uint256 tokenId
-    ) private onlyNftOwner(tokenId) unlockedForGame(tokenId) {
-        lockedNftForGame[tokenId] = true;
+    ) private hasLockAccess(tokenId) unlockedForGame(tokenId) {
+        isLocked[tokenId] = true;
 
         emit NFTLockedForGame(tokenId);
     }
 
     function _unlockNftForGame(
         uint256 tokenId
-    ) private onlyNftOwner(tokenId) lockedForGame(tokenId) {
-        delete lockedNftForGame[tokenId];
+    ) private hasLockAccess(tokenId) lockedForGame(tokenId) {
+        delete isLocked[tokenId];
 
         emit NFTUnlockedForGame(tokenId);
     }

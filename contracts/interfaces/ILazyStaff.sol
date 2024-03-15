@@ -3,14 +3,42 @@ pragma solidity ^0.8.4;
 
 import "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 
-interface ILazyStaff is IERC721 {
+interface ILazyStaff {
+    // State variables
+    enum StaffNFTRarity {
+        Common,
+        Uncommon,
+        Rare,
+        Epic,
+        Legendary
+    }
+
+    struct NftSkills {
+        uint256 medicine;
+        uint256 accounting;
+        uint256 scouting;
+        uint256 coaching;
+        uint256 physiotherapy;
+    }
+
+    struct BreedArgs {
+        uint256 firstParentTokenId;
+        uint256 secondParentTokenId;
+        uint256 childTokenId;
+        string childNftIpfsHash;
+        NftSkills nftSkills;
+        uint256 unspentSkills;
+        bytes signature;
+    }
+
+    // Events
     event NewNFTMinted(
         address to,
         string ipfsHash,
         uint256 indexed tokenId,
         NftSkills skills,
         uint256 unspentSkills,
-        StuffNFTRarity rarity
+        StaffNFTRarity rarity
     );
     event NFTBreeded(
         address to,
@@ -25,47 +53,21 @@ interface ILazyStaff is IERC721 {
         string ipfsHash
     );
 
-    enum StuffNFTRarity {
-        Common,
-        Uncommon,
-        Rare,
-        Epic,
-        Legendary
-    }
+    // Errors
+    error BadSignature();
+    error MaxRarity();
+    error NotEnoughSkills();
+    error DifferentRarities();
+    error NotNftOwner();
 
-    struct NftSkills {
-        uint256 marketerLVL;
-        uint256 accountantLVL;
-        uint256 scoutLVL;
-        uint256 coachLVL;
-        uint256 fitnessTrainerLVL;
-    }
-
-    struct BreedArgs {
-        uint256 firstParentTokenId;
-        uint256 secondParentTokenId;
-        uint256 childTokenId;
-        string childNftIpfsHash;
-        NftSkills nftSkills;
-        uint256 unspentSkills;
-        bytes signature;
-    }
-
+    // external functions
     function mintNewNft(
-        address to,
-        uint256 tokenId,
-        string memory ipfsHash,
-        NftSkills memory nftSkills,
-        uint256 unspentSkills,
-        StuffNFTRarity rarity
-    ) external;
-
-    function breedNft(BreedArgs memory breedArgs) external;
-
-    function updateNft(
-        uint256 tokenId,
-        NftSkills memory nftSkills,
-        string memory ipfsHash,
-        bytes memory signature
+        address _to,
+        uint256 _tokenId,
+        string memory _ipfsHash,
+        NftSkills memory _nftSkills,
+        uint256 _unspentSkills,
+        StaffNFTRarity _rarity,
+        bool _isLocked
     ) external;
 }
