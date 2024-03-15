@@ -16,9 +16,10 @@ contract LazyBox is ERC721, ERC721URIStorage, Ownable {
     constructor() ERC721("Lazy Boxes", "LB") {}
 
     function safeMint(address to, string memory _ipfsHash) public onlyOwner {
+        _tokenIdCounter.increment();
+
         uint256 tokenId = _tokenIdCounter.current();
 
-        _tokenIdCounter.increment();
         _safeMint(to, tokenId);
         _setTokenURI(tokenId, _ipfsHash);
     }

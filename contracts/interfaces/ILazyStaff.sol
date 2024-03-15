@@ -5,7 +5,7 @@ import "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 
 interface ILazyStaff {
     // State variables
-    enum StuffNFTRarity {
+    enum StaffNFTRarity {
         Common,
         Uncommon,
         Rare,
@@ -14,11 +14,11 @@ interface ILazyStaff {
     }
 
     struct NftSkills {
-        uint256 marketerLVL;
-        uint256 accountantLVL;
-        uint256 scoutLVL;
-        uint256 coachLVL;
-        uint256 fitnessTrainerLVL;
+        uint256 medicine;
+        uint256 accounting;
+        uint256 scouting;
+        uint256 coaching;
+        uint256 physiotherapy;
     }
 
     struct BreedArgs {
@@ -38,7 +38,7 @@ interface ILazyStaff {
         uint256 indexed tokenId,
         NftSkills skills,
         uint256 unspentSkills,
-        StuffNFTRarity rarity
+        StaffNFTRarity rarity
     );
     event NFTBreeded(
         address to,
@@ -59,4 +59,15 @@ interface ILazyStaff {
     error NotEnoughSkills();
     error DifferentRarities();
     error NotNftOwner();
+
+    // external functions
+    function mintNewNft(
+        address _to,
+        uint256 _tokenId,
+        string memory _ipfsHash,
+        NftSkills memory _nftSkills,
+        uint256 _unspentSkills,
+        StaffNFTRarity _rarity,
+        bool _isLocked
+    ) external;
 }
