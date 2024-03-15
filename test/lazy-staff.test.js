@@ -23,7 +23,7 @@ const { ZERO_ADDRESS } = require('../constants/common.constants');
                       },
                       10,
                       0,
-                      true
+                      true,
                   );
               }
           }
@@ -34,7 +34,6 @@ const { ZERO_ADDRESS } = require('../constants/common.constants');
 
               await lazyStaff.grantRole(adminRole, address);
               await lazyStaff.grantRole(minterRole, address);
-
           }
 
           beforeEach(async () => {

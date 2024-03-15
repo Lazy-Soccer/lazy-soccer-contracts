@@ -8,8 +8,10 @@ const POLYGON_MAINNET_RPC_URL =
 const MUMBAI_RPC_URL = process.env.MUMBAI_RPC_URL || 'Your alchemy url';
 const POLYGONSCAN_API_KEY =
     process.env.POLYGONSCAN_API_KEY || 'Your polygonscan API key';
-const ARBITRUM_SEPOLIA_RPC = process.env.ARBITRUM_SEPOLIA_RPC || 'Your arbitrum sepolia rpc url';
-const ARBISCAN_API_KEY = process.env.ARBISCAN_API_KEY || 'Your arbiscan API key';
+const ARBITRUM_SEPOLIA_RPC =
+    process.env.ARBITRUM_SEPOLIA_RPC || 'Your arbitrum sepolia rpc url';
+const ARBISCAN_API_KEY =
+    process.env.ARBISCAN_API_KEY || 'Your arbiscan API key';
 
 //other
 const REPORT_GAS = process.env.REPORT_GAS || false;
@@ -89,13 +91,13 @@ module.exports = {
 
         customChains: [
             {
-                network: "arbitrumSepolia",
+                network: 'arbitrumSepolia',
                 chainId: 421614,
                 urls: {
-                    apiURL: "https://api-sepolia.arbiscan.io/api",
-                    browserURL: "https://sepolia.arbiscan.io"
-                }
-            }
-        ]
+                    apiURL: 'https://api-sepolia.arbiscan.io/api',
+                    browserURL: 'https://sepolia.arbiscan.io',
+                },
+            },
+        ],
     },
 };

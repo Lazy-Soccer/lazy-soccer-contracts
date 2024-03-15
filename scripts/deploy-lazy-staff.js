@@ -1,7 +1,5 @@
 const { ethers } = require('hardhat');
-const {
-    BACKEND_SIGNER,
-} = require('../constants/marketplace.constants');
+const { BACKEND_SIGNER } = require('../constants/marketplace.constants');
 const { verify } = require('../utils/verify');
 
 async function main() {

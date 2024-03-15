@@ -15,8 +15,16 @@ contract BatchMinter is Ownable {
         address user,
         uint256[] calldata tokenIds
     ) external onlyOwner {
-        for (uint256 i; i < tokenIds.length;) {
-            lazyStaff.mintNewNft(user, tokenIds[i], "", ILazyStaff.NftSkills(2, 2, 2, 2, 2), 10, ILazyStaff.StaffNFTRarity.Common, false);
+        for (uint256 i; i < tokenIds.length; ) {
+            lazyStaff.mintNewNft(
+                user,
+                tokenIds[i],
+                "",
+                ILazyStaff.NftSkills(2, 2, 2, 2, 2),
+                10,
+                ILazyStaff.StaffNFTRarity.Common,
+                false
+            );
 
             unchecked {
                 ++i;

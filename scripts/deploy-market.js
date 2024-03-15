@@ -10,11 +10,9 @@ const NFTS = [
     process.env.LAZY_STAFF_ADDRESS,
     process.env.LAZY_ALPHA_ADDRESS,
     process.env.LAZY_BOXES_ADDRESS,
-]
+];
 
-const LOCKABLE = [
-    true, true, false
-]
+const LOCKABLE = [true, true, false];
 
 async function main() {
     const LazySoccerMarketplace = await ethers.getContractFactory(
@@ -37,12 +35,16 @@ async function main() {
         },
     );
 
-    console.log('Marketplace deployed to:', marketplace.address, marketplace.implementation.address);
+    console.log(
+        'Marketplace deployed to:',
+        marketplace.address,
+        marketplace.implementation.address,
+    );
 
-    for(const nft of NFTS) {
+    for (const nft of NFTS) {
         const index = NFTS.indexOf(nft);
 
-        if(!LOCKABLE[index]) continue;
+        if (!LOCKABLE[index]) continue;
 
         const contract = await ethers.getContractAt('ERC721Lockable', nft);
         const role = await contract.LOCKER();
@@ -53,7 +55,9 @@ async function main() {
 
     await new Promise((r) => setTimeout(r, 30000));
 
-    const currentImplAddress = await upgrades.erc1967.getImplementationAddress(marketplace.address);
+    const currentImplAddress = await upgrades.erc1967.getImplementationAddress(
+        marketplace.address,
+    );
 
     await verify(currentImplAddress, args);
     await verify(marketplace.address, args);

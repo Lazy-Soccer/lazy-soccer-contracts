@@ -117,7 +117,9 @@ contract LazySoccerMarketplace is
 
         for (uint256 i; i < _availableCollections.length; ) {
             availableCollections[_availableCollections[i]] = true;
-            lockableCollections[_availableCollections[i]] = _lockableCollections[i];
+            lockableCollections[
+                _availableCollections[i]
+            ] = _lockableCollections[i];
 
             unchecked {
                 ++i;
@@ -156,7 +158,10 @@ contract LazySoccerMarketplace is
         feeReceiver = 0;
     }
 
-    function addCollection(address _collection, bool _lockable) external onlyOwner {
+    function addCollection(
+        address _collection,
+        bool _lockable
+    ) external onlyOwner {
         availableCollections[_collection] = true;
         lockableCollections[_collection] = _lockable;
     }
@@ -218,7 +223,13 @@ contract LazySoccerMarketplace is
         uint256 deadline,
         uint256 nonce,
         bytes memory signature
-    ) external payable whenNotPaused onlyAvailableCollections(collection) nonReentrant {
+    )
+        external
+        payable
+        whenNotPaused
+        onlyAvailableCollections(collection)
+        nonReentrant
+    {
         _buyItem(
             lockableCollections[collection],
             tokenId,
@@ -263,7 +274,13 @@ contract LazySoccerMarketplace is
         uint256 deadline,
         uint256[] memory nonces,
         bytes[] memory signatures
-    ) external payable whenNotPaused onlyAvailableCollections(collection) nonReentrant {
+    )
+        external
+        payable
+        whenNotPaused
+        onlyAvailableCollections(collection)
+        nonReentrant
+    {
         require(
             tokenIds.length == nftPrices.length &&
                 tokenIds.length == fees.length &&
@@ -423,7 +440,7 @@ contract LazySoccerMarketplace is
             msg.sender,
             tokenId
         );
-        if(lockable) {
+        if (lockable) {
             ERC721Lockable(collection).lockNftForGame(tokenId);
         }
 
@@ -479,7 +496,11 @@ contract LazySoccerMarketplace is
         emit InGameAssetSold(msg.sender, inGameAssetOwner, transferId, nonce);
     }
 
-    function _listItem(uint256 tokenId, address collection, bool lockable) private {
+    function _listItem(
+        uint256 tokenId,
+        address collection,
+        bool lockable
+    ) private {
         require(listings[collection][tokenId] == address(0), "Already listed");
 
         if (lockable && ERC721Lockable(collection).isLocked(tokenId)) {
@@ -496,7 +517,11 @@ contract LazySoccerMarketplace is
         emit ItemListed(tokenId, msg.sender, collection);
     }
 
-    function _cancelListing(uint256 tokenId, address collection, bool lockable) private {
+    function _cancelListing(
+        uint256 tokenId,
+        address collection,
+        bool lockable
+    ) private {
         require(
             listings[collection][tokenId] == msg.sender,
             "No access to listing"
@@ -510,7 +535,7 @@ contract LazySoccerMarketplace is
             tokenId
         );
 
-        if(lockable) {
+        if (lockable) {
             ERC721Lockable(collection).lockNftForGame(tokenId);
         }
 

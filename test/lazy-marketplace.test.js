@@ -28,7 +28,7 @@ const { getRandomInt } = require('../utils/math');
                   },
                   10,
                   0,
-                  true
+                  true,
               );
               await lazyStaff.unlockNftForGame(tokenId);
           }
@@ -71,7 +71,7 @@ const { getRandomInt } = require('../utils/math');
                   [FEE_WALLET, FEE_SECOND_WALLET],
                   deployer.address,
                   [lazyStaff.address],
-                  [true]
+                  [true],
               ];
 
               marketplace = (
@@ -125,8 +125,9 @@ const { getRandomInt } = require('../utils/math');
                   await expect(
                       marketplace.changeCurrencyAddress(attacker.address),
                   ).to.be.reverted;
-                  await expect(marketplace.addCollection(lazyStaff.address, true)).to
-                      .be.reverted;
+                  await expect(
+                      marketplace.addCollection(lazyStaff.address, true),
+                  ).to.be.reverted;
                   await expect(marketplace.removeCollection(lazyStaff.address))
                       .to.be.reverted;
               });

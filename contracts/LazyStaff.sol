@@ -74,7 +74,9 @@ contract LazyStaff is ILazyStaff, ERC721URIStorage, ERC721Lockable, EIP712 {
         baseURI = _newURI;
     }
 
-    function tokenURI(uint256 tokenId) public view override(ERC721, ERC721URIStorage) returns (string memory) {
+    function tokenURI(
+        uint256 tokenId
+    ) public view override(ERC721, ERC721URIStorage) returns (string memory) {
         string memory uri = super.tokenURI(tokenId);
 
         if (bytes(uri).length == 0) {
@@ -154,7 +156,15 @@ contract LazyStaff is ILazyStaff, ERC721URIStorage, ERC721Lockable, EIP712 {
         StaffNFTRarity _rarity,
         bool _isLocked
     ) external onlyRole(MINTER_ROLE) {
-        _mintNft(_to, _tokenId, _ipfsHash, _nftSkills, _unspentSkills, _rarity, _isLocked);
+        _mintNft(
+            _to,
+            _tokenId,
+            _ipfsHash,
+            _nftSkills,
+            _unspentSkills,
+            _rarity,
+            _isLocked
+        );
 
         emit NewNFTMinted(
             _to,
