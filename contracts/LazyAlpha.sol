@@ -2,10 +2,16 @@
 pragma solidity ^0.8.0;
 
 import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
+import "@openzeppelin/contracts/token/ERC721/extensions/ERC721URIStorage.sol";
 import "./extensions/ERC721Lockable.sol";
 import "./extensions/TransferBlacklist.sol";
 
-contract LazyAlpha is ERC721, ERC721Lockable, TransferBlacklist {
+contract LazyAlpha is
+    ERC721,
+    ERC721URIStorage,
+    ERC721Lockable,
+    TransferBlacklist
+{
     using Strings for uint256;
 
     constructor() ERC721("Lazy Alpha", "LA") {
@@ -14,10 +20,12 @@ contract LazyAlpha is ERC721, ERC721Lockable, TransferBlacklist {
 
     function mintBatch(
         address to,
-        uint256[] calldata tokenIds
+        uint256[] calldata tokenIds,
+        string[] memory uris
     ) external onlyRole(DEFAULT_ADMIN_ROLE) {
         for (uint256 i; i < tokenIds.length; ) {
             _safeMint(to, tokenIds[i]);
+            _setTokenURI(tokenIds[i], uris[i]);
 
             unchecked {
                 ++i;
@@ -25,27 +33,24 @@ contract LazyAlpha is ERC721, ERC721Lockable, TransferBlacklist {
         }
     }
 
+    function tokenURI(
+        uint256 tokenId
+    ) public view override(ERC721, ERC721URIStorage) returns (string memory) {
+        return super.tokenURI(tokenId);
+    }
+
     function approve(
         address to,
         uint256 tokenId
-    ) public override(ERC721, TransferBlacklist) {
+    ) public override(IERC721, ERC721, TransferBlacklist) {
         super.approve(to, tokenId);
     }
 
     function setApprovalForAll(
         address operator,
         bool approved
-    ) public override(ERC721, TransferBlacklist) {
+    ) public override(IERC721, ERC721, TransferBlacklist) {
         super.setApprovalForAll(operator, approved);
-    }
-
-    function tokenURI(
-        uint256 tokenId
-    ) public view virtual override returns (string memory) {
-        _requireMinted(tokenId);
-
-        string memory baseURI = _baseURI();
-        return string(abi.encodePacked(baseURI, tokenId.toString(), ".json"));
     }
 
     function supportsInterface(
@@ -53,14 +58,16 @@ contract LazyAlpha is ERC721, ERC721Lockable, TransferBlacklist {
     )
         public
         view
-        override(ERC721, ERC721Lockable, TransferBlacklist)
+        override(ERC721, ERC721Lockable, ERC721URIStorage, TransferBlacklist)
         returns (bool)
     {
         return super.supportsInterface(interfaceId);
     }
 
-    function _baseURI() internal pure override returns (string memory) {
-        return "ipfs://QmRSXsDSSPR9BEchy9qX3gLiq3RANCoy9jA53A5oSGYuRC/";
+    function _burn(
+        uint256 tokenId
+    ) internal override(ERC721, ERC721URIStorage) {
+        super._burn(tokenId);
     }
 
     function _beforeTokenTransfer(
