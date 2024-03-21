@@ -25,11 +25,17 @@ contract LazyAlpha is ERC721, ERC721Lockable, TransferBlacklist {
         }
     }
 
-    function approve(address to, uint256 tokenId) public override(ERC721, TransferBlacklist) {
+    function approve(
+        address to,
+        uint256 tokenId
+    ) public override(ERC721, TransferBlacklist) {
         super.approve(to, tokenId);
     }
 
-    function setApprovalForAll(address operator, bool approved) public override(ERC721, TransferBlacklist) {
+    function setApprovalForAll(
+        address operator,
+        bool approved
+    ) public override(ERC721, TransferBlacklist) {
         super.setApprovalForAll(operator, approved);
     }
 
@@ -44,7 +50,12 @@ contract LazyAlpha is ERC721, ERC721Lockable, TransferBlacklist {
 
     function supportsInterface(
         bytes4 interfaceId
-    ) public view override(ERC721, ERC721Lockable, TransferBlacklist) returns (bool) {
+    )
+        public
+        view
+        override(ERC721, ERC721Lockable, TransferBlacklist)
+        returns (bool)
+    {
         return super.supportsInterface(interfaceId);
     }
 

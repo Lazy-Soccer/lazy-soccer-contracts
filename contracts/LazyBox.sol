@@ -41,11 +41,17 @@ contract LazyBox is ERC721, ERC721URIStorage, TransferBlacklist, Ownable {
         _openBox(tokenId);
     }
 
-    function approve(address to, uint256 tokenId) public override(IERC721, ERC721, TransferBlacklist) {
+    function approve(
+        address to,
+        uint256 tokenId
+    ) public override(IERC721, ERC721, TransferBlacklist) {
         super.approve(to, tokenId);
     }
 
-    function setApprovalForAll(address operator, bool approved) public override(IERC721, ERC721, TransferBlacklist) {
+    function setApprovalForAll(
+        address operator,
+        bool approved
+    ) public override(IERC721, ERC721, TransferBlacklist) {
         super.setApprovalForAll(operator, approved);
     }
 
@@ -79,7 +85,12 @@ contract LazyBox is ERC721, ERC721URIStorage, TransferBlacklist, Ownable {
 
     function supportsInterface(
         bytes4 interfaceId
-    ) public view override(ERC721, ERC721URIStorage, TransferBlacklist) returns (bool) {
+    )
+        public
+        view
+        override(ERC721, ERC721URIStorage, TransferBlacklist)
+        returns (bool)
+    {
         return super.supportsInterface(interfaceId);
     }
 }

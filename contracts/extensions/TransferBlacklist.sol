@@ -7,7 +7,10 @@ abstract contract TransferBlacklist is ERC721 {
     mapping(address => bool) public blacklistOperators;
 
     modifier requireNotBlacklisted(address to) {
-        require(!blacklistOperators[to], "TransferBlacklist: recipient is blacklisted");
+        require(
+            !blacklistOperators[to],
+            "TransferBlacklist: recipient is blacklisted"
+        );
         _;
     }
 
@@ -19,11 +22,17 @@ abstract contract TransferBlacklist is ERC721 {
         blacklistOperators[_address] = false;
     }
 
-    function approve(address to, uint256 tokenId) public virtual override requireNotBlacklisted(to) {
+    function approve(
+        address to,
+        uint256 tokenId
+    ) public virtual override requireNotBlacklisted(to) {
         super.approve(to, tokenId);
     }
 
-    function setApprovalForAll(address operator, bool approved) public virtual override requireNotBlacklisted(operator) {
+    function setApprovalForAll(
+        address operator,
+        bool approved
+    ) public virtual override requireNotBlacklisted(operator) {
         super.setApprovalForAll(operator, approved);
     }
 
