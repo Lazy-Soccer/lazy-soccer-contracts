@@ -3,8 +3,9 @@ pragma solidity ^0.8.0;
 
 import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 import "./extensions/ERC721Lockable.sol";
+import "./extensions/TransferBlacklist.sol";
 
-contract LazyAlpha is ERC721, ERC721Lockable {
+contract LazyAlpha is ERC721, ERC721Lockable, TransferBlacklist {
     using Strings for uint256;
 
     constructor() ERC721("Lazy Alpha", "LA") {
@@ -24,6 +25,14 @@ contract LazyAlpha is ERC721, ERC721Lockable {
         }
     }
 
+    function approve(address to, uint256 tokenId) public override(ERC721, TransferBlacklist) {
+        super.approve(to, tokenId);
+    }
+
+    function setApprovalForAll(address operator, bool approved) public override(ERC721, TransferBlacklist) {
+        super.setApprovalForAll(operator, approved);
+    }
+
     function tokenURI(
         uint256 tokenId
     ) public view virtual override returns (string memory) {
@@ -35,7 +44,7 @@ contract LazyAlpha is ERC721, ERC721Lockable {
 
     function supportsInterface(
         bytes4 interfaceId
-    ) public view override(ERC721, ERC721Lockable) returns (bool) {
+    ) public view override(ERC721, ERC721Lockable, TransferBlacklist) returns (bool) {
         return super.supportsInterface(interfaceId);
     }
 

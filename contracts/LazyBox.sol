@@ -5,8 +5,9 @@ import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 import "@openzeppelin/contracts/token/ERC721/extensions/ERC721URIStorage.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/utils/Counters.sol";
+import "./extensions/TransferBlacklist.sol";
 
-contract LazyBox is ERC721, ERC721URIStorage, Ownable {
+contract LazyBox is ERC721, ERC721URIStorage, TransferBlacklist, Ownable {
     using Counters for Counters.Counter;
 
     Counters.Counter private _tokenIdCounter;
@@ -40,6 +41,14 @@ contract LazyBox is ERC721, ERC721URIStorage, Ownable {
         _openBox(tokenId);
     }
 
+    function approve(address to, uint256 tokenId) public override(IERC721, ERC721, TransferBlacklist) {
+        super.approve(to, tokenId);
+    }
+
+    function setApprovalForAll(address operator, bool approved) public override(IERC721, ERC721, TransferBlacklist) {
+        super.setApprovalForAll(operator, approved);
+    }
+
     function _openBox(uint256 tokenId) private {
         require(_ownerOf(tokenId) == msg.sender, "Not NFT owner");
 
@@ -52,7 +61,7 @@ contract LazyBox is ERC721, ERC721URIStorage, Ownable {
         address to,
         uint256 tokenId,
         uint256 batchSize
-    ) internal override(ERC721) {
+    ) internal override {
         super._beforeTokenTransfer(from, to, tokenId, batchSize);
     }
 
@@ -70,7 +79,7 @@ contract LazyBox is ERC721, ERC721URIStorage, Ownable {
 
     function supportsInterface(
         bytes4 interfaceId
-    ) public view override(ERC721, ERC721URIStorage) returns (bool) {
+    ) public view override(ERC721, ERC721URIStorage, TransferBlacklist) returns (bool) {
         return super.supportsInterface(interfaceId);
     }
 }

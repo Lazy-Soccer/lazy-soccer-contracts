@@ -8,8 +8,9 @@ import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 import "@openzeppelin/contracts/token/ERC721/extensions/ERC721URIStorage.sol";
 import "./interfaces/ILazyStaff.sol";
 import "./extensions/ERC721Lockable.sol";
+import "./extensions/TransferBlacklist.sol";
 
-contract LazyStaff is ILazyStaff, ERC721URIStorage, ERC721Lockable, EIP712 {
+contract LazyStaff is ILazyStaff, ERC721URIStorage, ERC721Lockable, TransferBlacklist, EIP712 {
     using ECDSA for bytes32;
     using Strings for uint256;
 
@@ -66,6 +67,14 @@ contract LazyStaff is ILazyStaff, ERC721URIStorage, ERC721Lockable, EIP712 {
         backendSigner = _backendSigner;
 
         _grantRole(DEFAULT_ADMIN_ROLE, msg.sender);
+    }
+
+    function addToBlacklist(address _address) public override onlyRole(DEFAULT_ADMIN_ROLE) {
+        super.addToBlacklist(_address);
+    }
+
+    function removeFromBlacklist(address _address) public override onlyRole(DEFAULT_ADMIN_ROLE) {
+        super.removeFromBlacklist(_address);
     }
 
     function changeBaseURI(
@@ -258,8 +267,16 @@ contract LazyStaff is ILazyStaff, ERC721URIStorage, ERC721Lockable, EIP712 {
 
     function supportsInterface(
         bytes4 interfaceId
-    ) public view override(ERC721URIStorage, ERC721Lockable) returns (bool) {
+    ) public view override(ERC721URIStorage, ERC721Lockable, TransferBlacklist) returns (bool) {
         return super.supportsInterface(interfaceId);
+    }
+
+    function approve(address to, uint256 tokenId) public override(IERC721, ERC721, TransferBlacklist) {
+        super.approve(to, tokenId);
+    }
+
+    function setApprovalForAll(address operator, bool approved) public override(IERC721, ERC721, TransferBlacklist) {
+        super.setApprovalForAll(operator, approved);
     }
 
     function _burn(
