@@ -111,7 +111,7 @@ contract LazyStaff is
         backendSigner = _backendSigner;
     }
 
-    function updateNft(
+    function skillsUpgrade(
         uint256 _tokenId,
         NftSkills memory _nftSkills,
         string memory _ipfsHash,
@@ -166,7 +166,7 @@ contract LazyStaff is
         );
     }
 
-    function mintNewNft(
+    function newMint(
         address _to,
         uint256 _tokenId,
         string memory _ipfsHash,
@@ -195,7 +195,7 @@ contract LazyStaff is
         );
     }
 
-    function breedNft(
+    function rarityUpgrade(
         BreedArgs memory breedArgs
     )
         external

@@ -59,7 +59,7 @@ interface ILazyStaff {
     error NotNftOwner();
 
     // external functions
-    function mintNewNft(
+    function newMint(
         address _to,
         uint256 _tokenId,
         string memory _ipfsHash,
