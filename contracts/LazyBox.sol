@@ -17,6 +17,23 @@ contract LazyBox is ERC721, ERC721URIStorage, TransferBlacklist, Ownable {
     constructor() ERC721("Lazy Boxes", "LB") {}
 
     function safeMint(address to, string memory _ipfsHash) public onlyOwner {
+        _safeMint(to, _ipfsHash);
+    }
+
+    function safeMintBatch(address[] memory _to, string[] memory _ipfs, uint256 _length) public onlyOwner {
+        require(_to.length == _ipfs.length, "LazyBox::safeMintBatch: Arrays are not equal in length");
+        require(_to.length == _length, "LazyBox::safeMintBatch: Array length not equal length");
+
+         for (uint256 i; i < _to.length;) {
+            _safeMint(_to[i], _ipfs[i]);
+
+            unchecked {
+                ++i;
+            }
+        }
+    }
+
+    function _safeMint(address to, string memory _ipfsHash) private {
         _tokenIdCounter.increment();
 
         uint256 tokenId = _tokenIdCounter.current();
