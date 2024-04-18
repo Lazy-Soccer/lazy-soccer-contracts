@@ -166,6 +166,50 @@ contract LazyStaff is
         );
     }
 
+    function newMintBatch(address[] memory _to,
+        uint256[] memory _tokenId,
+        string[] memory _ipfsHash,
+        NftSkills[] memory _nftSkills,
+        uint256[] memory _unspentSkills,
+        StaffNFTRarity[] memory _rarity,
+        bool[] memory _isLocked, 
+        uint256 _length
+    ) external onlyRole(MINTER_ROLE) {
+        require(_to.length == _length, "LazyBox::safeMintBatch: _to length not equal length");
+        require(_tokenId.length == _length, "LazyBox::safeMintBatch: _tokenId length not equal length");
+        require(_ipfsHash.length == _length, "LazyBox::safeMintBatch: _ipfsHash length not equal length");
+        require(_nftSkills.length == _length, "LazyBox::safeMintBatch: _nftSkills length not equal length");
+        require(_unspentSkills.length == _length, "LazyBox::safeMintBatch: _unspentSkills length not equal length");
+        require(_rarity.length == _length, "LazyBox::safeMintBatch: _rarity length not equal length");
+        require(_isLocked.length == _length, "LazyBox::safeMintBatch: _isLocked length not equal length");
+
+         for (uint256 i; i < _to.length;) {
+            _mintNft(
+                _to[i],
+                _tokenId[i],
+                _ipfsHash[i],
+                _nftSkills[i],
+                _unspentSkills[i],
+                _rarity[i],
+                _isLocked[i]
+            );
+
+            emit NewNFTMinted(
+                _to[i],
+                _ipfsHash[i],
+                _tokenId[i],
+                _nftSkills[i],
+                _unspentSkills[i],
+                _rarity[i]
+            );
+
+            unchecked {
+                ++i;
+            }
+        }
+
+    }
+
     function newMint(
         address _to,
         uint256 _tokenId,
