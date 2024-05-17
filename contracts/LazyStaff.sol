@@ -44,6 +44,22 @@ contract LazyStaff is
             )
         );
 
+    bytes32 private constant MINT_TYPEHASH =
+        keccak256(
+            abi.encodePacked(
+                "Mint("
+                "address to,",
+                "uint256 tokenId,",
+                "string ipfsHash,",
+                "NftSkills skills,",
+                "uint256 unspentSkills,"
+                "uint8 rarity,",
+                "bool locked",
+                ")",
+                NFT_SKILLS_TYPE
+            )
+        );
+
     bytes32 private constant BREED_TYPEHASH =
         keccak256(
             abi.encodePacked(
@@ -211,14 +227,35 @@ contract LazyStaff is
     }
 
     function newMint(
-        address _to,
         uint256 _tokenId,
         string memory _ipfsHash,
         NftSkills memory _nftSkills,
         uint256 _unspentSkills,
         StaffNFTRarity _rarity,
-        bool _isLocked
-    ) external onlyRole(MINTER_ROLE) {
+        bool _isLocked,
+        bytes signature
+    ) external {
+         address _to = msg.sender;
+
+         bytes32 hash = _hashTypedDataV4(
+            keccak256(
+                abi.encode(
+                    MINT_TYPEHASH,
+                    _to,
+                    _tokenId,
+                    _ipfsHash,
+                    hashSkills(breedArgs.nftSkills),
+                    _unspentSkills,
+                    _rarity,
+                    _isLocked
+                )
+            )
+        );
+
+        if (hash.recover(signature) != backendSigner) {
+            revert BadSignature();
+        }
+
         _mintNft(
             _to,
             _tokenId,
