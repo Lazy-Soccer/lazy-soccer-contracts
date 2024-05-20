@@ -48,7 +48,6 @@ contract LazyStaff is
         keccak256(
             abi.encodePacked(
                 "Mint("
-                "address to,",
                 "uint256 tokenId,",
                 "string ipfsHash,",
                 "NftSkills skills,",
@@ -241,9 +240,8 @@ contract LazyStaff is
             keccak256(
                 abi.encode(
                     MINT_TYPEHASH,
-                    _to,
                     _tokenId,
-                    _ipfsHash,
+                    keccak256(bytes(_ipfsHash)),
                     hashSkills(_nftSkills),
                     _unspentSkills,
                     _rarity,
