@@ -233,7 +233,7 @@ contract LazyStaff is
         uint256 _unspentSkills,
         StaffNFTRarity _rarity,
         bool _isLocked,
-        bytes signature
+        bytes memory _signature
     ) external {
          address _to = msg.sender;
 
@@ -244,7 +244,7 @@ contract LazyStaff is
                     _to,
                     _tokenId,
                     _ipfsHash,
-                    hashSkills(breedArgs.nftSkills),
+                    hashSkills(_nftSkills),
                     _unspentSkills,
                     _rarity,
                     _isLocked
@@ -252,7 +252,7 @@ contract LazyStaff is
             )
         );
 
-        if (hash.recover(signature) != backendSigner) {
+        if (hash.recover(_signature) != backendSigner) {
             revert BadSignature();
         }
 

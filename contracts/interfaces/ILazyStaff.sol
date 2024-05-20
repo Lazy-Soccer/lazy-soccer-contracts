@@ -60,12 +60,12 @@ interface ILazyStaff {
 
     // external functions
     function newMint(
-        address _to,
         uint256 _tokenId,
         string memory _ipfsHash,
         NftSkills memory _nftSkills,
         uint256 _unspentSkills,
         StaffNFTRarity _rarity,
-        bool _isLocked
+        bool _isLocked,
+        bytes memory _signature
     ) external;
 }
