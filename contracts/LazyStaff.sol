@@ -1,21 +1,24 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.9;
 
-import "@openzeppelin/contracts/utils/cryptography/EIP712.sol";
+import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
+import "@openzeppelin/contracts-upgradeable/utils/cryptography/EIP712Upgradeable.sol";
 import "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 import "@openzeppelin/contracts/utils/Strings.sol";
-import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
-import "@openzeppelin/contracts/token/ERC721/extensions/ERC721URIStorage.sol";
+import "@openzeppelin/contracts-upgradeable/token/ERC721/ERC721Upgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/token/ERC721/IERC721Upgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/token/ERC721/extensions/ERC721URIStorageUpgradeable.sol";
 import "./interfaces/ILazyStaff.sol";
 import "./extensions/ERC721Lockable.sol";
 import "./extensions/TransferBlacklist.sol";
 
 contract LazyStaff is
+    Initializable,
     ILazyStaff,
-    ERC721URIStorage,
+    ERC721URIStorageUpgradeable,
     ERC721Lockable,
     TransferBlacklist,
-    EIP712
+    EIP712Upgradeable
 {
     using ECDSA for bytes32;
     using Strings for uint256;
@@ -44,6 +47,21 @@ contract LazyStaff is
             )
         );
 
+    bytes32 private constant MINT_TYPEHASH =
+        keccak256(
+            abi.encodePacked(
+                "Mint("
+                "uint256 tokenId,",
+                "string ipfsHash,",
+                "NftSkills skills,",
+                "uint256 unspentSkills,"
+                "uint8 rarity,",
+                "bool locked",
+                ")",
+                NFT_SKILLS_TYPE
+            )
+        );
+
     bytes32 private constant BREED_TYPEHASH =
         keccak256(
             abi.encodePacked(
@@ -67,11 +85,11 @@ contract LazyStaff is
         _;
     }
 
-    constructor(
-        address _backendSigner
-    ) ERC721("Lazy Staff", "Lazy Staff") EIP712("Lazy Staff", "1") {
-        backendSigner = _backendSigner;
+    function initialize(address _backendSigner) public initializer {
+        __ERC721_init("Lazy Staff", "Lazy Staff");
+        __EIP712_init("Lazy Staff", "1");
 
+        backendSigner = _backendSigner;
         _grantRole(DEFAULT_ADMIN_ROLE, msg.sender);
     }
 
@@ -95,7 +113,12 @@ contract LazyStaff is
 
     function tokenURI(
         uint256 tokenId
-    ) public view override(ERC721, ERC721URIStorage) returns (string memory) {
+    )
+        public
+        view
+        override(ERC721Upgradeable, ERC721URIStorageUpgradeable)
+        returns (string memory)
+    {
         string memory uri = super.tokenURI(tokenId);
 
         if (bytes(uri).length == 0) {
@@ -166,15 +189,100 @@ contract LazyStaff is
         );
     }
 
+    function newMintBatch(
+        address[] memory _to,
+        uint256[] memory _tokenId,
+        string[] memory _ipfsHash,
+        NftSkills[] memory _nftSkills,
+        uint256[] memory _unspentSkills,
+        StaffNFTRarity[] memory _rarity,
+        bool[] memory _isLocked,
+        uint256 _length
+    ) external onlyRole(MINTER_ROLE) {
+        require(
+            _to.length == _length,
+            "LazyBox::safeMintBatch: _to length not equal length"
+        );
+        require(
+            _tokenId.length == _length,
+            "LazyBox::safeMintBatch: _tokenId length not equal length"
+        );
+        require(
+            _ipfsHash.length == _length,
+            "LazyBox::safeMintBatch: _ipfsHash length not equal length"
+        );
+        require(
+            _nftSkills.length == _length,
+            "LazyBox::safeMintBatch: _nftSkills length not equal length"
+        );
+        require(
+            _unspentSkills.length == _length,
+            "LazyBox::safeMintBatch: _unspentSkills length not equal length"
+        );
+        require(
+            _rarity.length == _length,
+            "LazyBox::safeMintBatch: _rarity length not equal length"
+        );
+        require(
+            _isLocked.length == _length,
+            "LazyBox::safeMintBatch: _isLocked length not equal length"
+        );
+
+        for (uint256 i; i < _to.length; ) {
+            _mintNft(
+                _to[i],
+                _tokenId[i],
+                _ipfsHash[i],
+                _nftSkills[i],
+                _unspentSkills[i],
+                _rarity[i],
+                _isLocked[i]
+            );
+
+            emit NewNFTMinted(
+                _to[i],
+                _ipfsHash[i],
+                _tokenId[i],
+                _nftSkills[i],
+                _unspentSkills[i],
+                _rarity[i]
+            );
+
+            unchecked {
+                ++i;
+            }
+        }
+    }
+
     function newMint(
-        address _to,
         uint256 _tokenId,
         string memory _ipfsHash,
         NftSkills memory _nftSkills,
         uint256 _unspentSkills,
         StaffNFTRarity _rarity,
-        bool _isLocked
-    ) external onlyRole(MINTER_ROLE) {
+        bool _isLocked,
+        bytes memory _signature
+    ) external {
+        address _to = msg.sender;
+
+        bytes32 hash = _hashTypedDataV4(
+            keccak256(
+                abi.encode(
+                    MINT_TYPEHASH,
+                    _tokenId,
+                    keccak256(bytes(_ipfsHash)),
+                    hashSkills(_nftSkills),
+                    _unspentSkills,
+                    _rarity,
+                    _isLocked
+                )
+            )
+        );
+
+        if (hash.recover(_signature) != backendSigner) {
+            revert BadSignature();
+        }
+
         _mintNft(
             _to,
             _tokenId,
@@ -280,7 +388,7 @@ contract LazyStaff is
     )
         public
         view
-        override(ERC721URIStorage, ERC721Lockable, TransferBlacklist)
+        override(ERC721URIStorageUpgradeable, ERC721Lockable, TransferBlacklist)
         returns (bool)
     {
         return super.supportsInterface(interfaceId);
@@ -289,20 +397,26 @@ contract LazyStaff is
     function approve(
         address to,
         uint256 tokenId
-    ) public override(IERC721, ERC721, TransferBlacklist) {
+    )
+        public
+        override(IERC721Upgradeable, ERC721Upgradeable, TransferBlacklist)
+    {
         super.approve(to, tokenId);
     }
 
     function setApprovalForAll(
         address operator,
         bool approved
-    ) public override(IERC721, ERC721, TransferBlacklist) {
+    )
+        public
+        override(IERC721Upgradeable, ERC721Upgradeable, TransferBlacklist)
+    {
         super.setApprovalForAll(operator, approved);
     }
 
     function _burn(
         uint256 tokenId
-    ) internal override(ERC721, ERC721URIStorage) {
+    ) internal override(ERC721Upgradeable, ERC721URIStorageUpgradeable) {
         super._burn(tokenId);
     }
 

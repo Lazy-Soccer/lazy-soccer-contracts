@@ -1,10 +1,13 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.9;
 
-import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
-import "@openzeppelin/contracts/access/AccessControl.sol";
+import "@openzeppelin/contracts-upgradeable/token/ERC721/ERC721Upgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol";
 
-abstract contract ERC721Lockable is ERC721, AccessControl {
+abstract contract ERC721Lockable is
+    ERC721Upgradeable,
+    AccessControlUpgradeable
+{
     bytes32 public constant LOCKER = keccak256("LOCKER");
     mapping(uint256 => bool) public isLocked;
 
@@ -69,7 +72,13 @@ abstract contract ERC721Lockable is ERC721, AccessControl {
 
     function supportsInterface(
         bytes4 interfaceId
-    ) public view virtual override(ERC721, AccessControl) returns (bool) {
+    )
+        public
+        view
+        virtual
+        override(ERC721Upgradeable, AccessControlUpgradeable)
+        returns (bool)
+    {
         return super.supportsInterface(interfaceId);
     }
 

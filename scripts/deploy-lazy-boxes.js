@@ -1,18 +1,17 @@
-const { ethers } = require('hardhat');
-const { verify } = require('../utils/verify');
+const { ethers, upgrades } = require('hardhat');
 
 async function main() {
     const LazyBoxes = await ethers.getContractFactory('LazyBox');
 
     console.log('Deploying LazyBox.sol...');
 
-    const lazyBoxes = await LazyBoxes.deploy();
+    const lazyBoxes = await upgrades.deployProxy(LazyBoxes, [], {
+        initializer: 'initialize',
+    });
+
     await lazyBoxes.deployed();
 
-    console.log('LazyBox.sol deployed to:', lazyBoxes.address);
-
-    await new Promise((r) => setTimeout(r, 10000));
-    await verify(lazyBoxes.address);
+    console.log('LazyBoxes deployed to:', lazyBoxes.address);
 }
 
 main().catch((error) => {
