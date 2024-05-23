@@ -1,30 +1,51 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.9;
 
-import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
-import "@openzeppelin/contracts/token/ERC721/extensions/ERC721URIStorage.sol";
-import "@openzeppelin/contracts/access/Ownable.sol";
+import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
+import "@openzeppelin/contracts-upgradeable/token/ERC721/ERC721Upgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/token/ERC721/IERC721Upgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/token/ERC721/extensions/ERC721URIStorageUpgradeable.sol";
+
+import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import "@openzeppelin/contracts/utils/Counters.sol";
 import "./extensions/TransferBlacklist.sol";
 
-contract LazyBox is ERC721, ERC721URIStorage, TransferBlacklist, Ownable {
+contract LazyBox is
+    Initializable,
+    ERC721Upgradeable,
+    ERC721URIStorageUpgradeable,
+    TransferBlacklist,
+    OwnableUpgradeable
+{
     using Counters for Counters.Counter;
 
     Counters.Counter private _tokenIdCounter;
 
     event BoxOpened(address indexed owner, uint256 indexed tokenId);
 
-    constructor() ERC721("Lazy Boxes", "LB") {}
+    function initialize() public initializer {
+        __ERC721_init("Lazy Boxes", "LB");
+    }
 
     function safeMint(address to, string memory _ipfsHash) public onlyOwner {
         _safeMint(to, _ipfsHash);
     }
 
-    function safeMintBatch(address[] memory _to, string[] memory _ipfs, uint256 _length) public onlyOwner {
-        require(_to.length == _ipfs.length, "LazyBox::safeMintBatch: Arrays are not equal in length");
-        require(_to.length == _length, "LazyBox::safeMintBatch: Array length not equal length");
+    function safeMintBatch(
+        address[] memory _to,
+        string[] memory _ipfs,
+        uint256 _length
+    ) public onlyOwner {
+        require(
+            _to.length == _ipfs.length,
+            "LazyBox::safeMintBatch: Arrays are not equal in length"
+        );
+        require(
+            _to.length == _length,
+            "LazyBox::safeMintBatch: Array length not equal length"
+        );
 
-         for (uint256 i; i < _to.length;) {
+        for (uint256 i; i < _to.length; ) {
             _safeMint(_to[i], _ipfs[i]);
 
             unchecked {
@@ -61,14 +82,20 @@ contract LazyBox is ERC721, ERC721URIStorage, TransferBlacklist, Ownable {
     function approve(
         address to,
         uint256 tokenId
-    ) public override(IERC721, ERC721, TransferBlacklist) {
+    )
+        public
+        override(IERC721Upgradeable, ERC721Upgradeable, TransferBlacklist)
+    {
         super.approve(to, tokenId);
     }
 
     function setApprovalForAll(
         address operator,
         bool approved
-    ) public override(IERC721, ERC721, TransferBlacklist) {
+    )
+        public
+        override(IERC721Upgradeable, ERC721Upgradeable, TransferBlacklist)
+    {
         super.setApprovalForAll(operator, approved);
     }
 
@@ -90,13 +117,18 @@ contract LazyBox is ERC721, ERC721URIStorage, TransferBlacklist, Ownable {
 
     function tokenURI(
         uint256 tokenId
-    ) public view override(ERC721, ERC721URIStorage) returns (string memory) {
+    )
+        public
+        view
+        override(ERC721Upgradeable, ERC721URIStorageUpgradeable)
+        returns (string memory)
+    {
         return super.tokenURI(tokenId);
     }
 
     function _burn(
         uint256 tokenId
-    ) internal override(ERC721, ERC721URIStorage) {
+    ) internal override(ERC721Upgradeable, ERC721URIStorageUpgradeable) {
         super._burn(tokenId);
     }
 
@@ -105,7 +137,11 @@ contract LazyBox is ERC721, ERC721URIStorage, TransferBlacklist, Ownable {
     )
         public
         view
-        override(ERC721, ERC721URIStorage, TransferBlacklist)
+        override(
+            ERC721Upgradeable,
+            ERC721URIStorageUpgradeable,
+            TransferBlacklist
+        )
         returns (bool)
     {
         return super.supportsInterface(interfaceId);

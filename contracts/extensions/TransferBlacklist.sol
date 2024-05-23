@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.20;
 
-import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
+import "@openzeppelin/contracts-upgradeable/token/ERC721/ERC721Upgradeable.sol";
 
-abstract contract TransferBlacklist is ERC721 {
+abstract contract TransferBlacklist is ERC721Upgradeable {
     mapping(address => bool) public blacklistOperators;
 
     modifier requireNotBlacklisted(address to) {
@@ -38,7 +38,7 @@ abstract contract TransferBlacklist is ERC721 {
 
     function supportsInterface(
         bytes4 interfaceId
-    ) public view virtual override(ERC721) returns (bool) {
+    ) public view virtual override(ERC721Upgradeable) returns (bool) {
         return super.supportsInterface(interfaceId);
     }
 }
