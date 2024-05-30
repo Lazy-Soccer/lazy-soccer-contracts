@@ -24,6 +24,7 @@ contract LazyBox is
     event BoxOpened(address indexed owner, uint256 indexed tokenId);
 
     function initialize() public initializer {
+        __Ownable_init();
         __ERC721_init("Lazy Boxes", "LB");
     }
 
