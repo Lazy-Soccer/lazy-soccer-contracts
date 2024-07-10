@@ -5,6 +5,7 @@ import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC721/ERC721Upgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC721/IERC721Upgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC721/extensions/ERC721URIStorageUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/token/common/ERC2981Upgradeable.sol";
 import "@openzeppelin/contracts/utils/Strings.sol";
 import "./extensions/ERC721Lockable.sol";
 import "./extensions/TransferBlacklist.sol";
@@ -14,13 +15,18 @@ contract LazyAlpha is
     ERC721Upgradeable,
     ERC721URIStorageUpgradeable,
     ERC721Lockable,
-    TransferBlacklist
+    TransferBlacklist,
+    ERC2981Upgradeable
 {
     using Strings for uint256;
 
-    function initialize() public initializer {
+    uint96 public royaltyFraction;
+
+    function initialize(address royaltyReceiver, uint96 feeNumerator) public initializer {
         __ERC721_init("Lazy Alpha", "LA");
+        __ERC2981_init();
         _grantRole(DEFAULT_ADMIN_ROLE, msg.sender);
+        setDefaultRoyalty(royaltyReceiver, feeNumerator);
     }
 
     function mintBatch(
@@ -78,11 +84,17 @@ contract LazyAlpha is
             ERC721Upgradeable,
             ERC721Lockable,
             ERC721URIStorageUpgradeable,
-            TransferBlacklist
+            TransferBlacklist,
+            ERC2981Upgradeable
         )
         returns (bool)
     {
         return super.supportsInterface(interfaceId);
+    }
+
+    function setDefaultRoyalty(address receiver, uint96 feeNumerator) public onlyRole(DEFAULT_ADMIN_ROLE) {
+        royaltyFraction = feeNumerator;
+        super._setDefaultRoyalty(receiver, feeNumerator);
     }
 
     function _burn(

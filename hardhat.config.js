@@ -12,6 +12,7 @@ const ARBITRUM_SEPOLIA_RPC =
     process.env.ARBITRUM_SEPOLIA_RPC || 'Your arbitrum sepolia rpc url';
 const ARBISCAN_API_KEY =
     process.env.ARBISCAN_API_KEY || 'Your arbiscan API key';
+const ARBITRUM_RPC = process.env.ARBITRUM_RPC || 'Your arbitrum rpc url';
 
 //other
 const REPORT_GAS = process.env.REPORT_GAS || false;
@@ -62,6 +63,12 @@ module.exports = {
             saveDeployments: true,
             chainId: 421614,
         },
+        arbitrum: {
+            url: ARBITRUM_RPC,
+            accounts: !!PRIVATE_KEY ? [PRIVATE_KEY] : [],
+            saveDeployments: true,
+            chainId: 42161,
+        },
     },
     namedAccounts: {
         deployer: {
@@ -87,6 +94,7 @@ module.exports = {
             polygonMumbai: POLYGONSCAN_API_KEY,
             polygon: POLYGONSCAN_API_KEY,
             arbitrumSepolia: ARBISCAN_API_KEY,
+            arbitrum: ARBISCAN_API_KEY,
         },
 
         customChains: [
@@ -96,6 +104,14 @@ module.exports = {
                 urls: {
                     apiURL: 'https://api-sepolia.arbiscan.io/api',
                     browserURL: 'https://sepolia.arbiscan.io',
+                },
+            },
+            {
+                network: 'arbitrum',
+                chainId: 42161,
+                urls: {
+                    apiURL: 'https://api.arbiscan.io/api',
+                    browserURL: 'https://arbiscan.io',
                 },
             },
         ],

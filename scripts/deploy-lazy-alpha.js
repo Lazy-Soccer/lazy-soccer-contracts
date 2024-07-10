@@ -1,11 +1,14 @@
 const { ethers, upgrades } = require('hardhat');
+const { ROYALTY_WALLET, ROYALTY_PERCENT } = require('../constants/marketplace.constants');
 
 async function main() {
     const LazyAlpha = await ethers.getContractFactory('LazyAlpha');
 
     console.log('Deploying LazyAlpha...');
 
-    const alphaNft = await upgrades.deployProxy(LazyAlpha, [], {
+    const args = [ROYALTY_WALLET, ROYALTY_PERCENT]
+
+    const alphaNft = await upgrades.deployProxy(LazyAlpha, args, {
         initializer: 'initialize',
     });
 
