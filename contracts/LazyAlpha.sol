@@ -97,6 +97,24 @@ contract LazyAlpha is
         super._setDefaultRoyalty(receiver, feeNumerator);
     }
 
+    function setTokenURIBatch(uint256[] memory _tokenIds, string[] memory _tokenURIs, uint256 _length) external onlyRole(DEFAULT_ADMIN_ROLE) {
+        require(
+            _tokenIds.length == _tokenURIs.length,
+            "LazyBox::setTokenURIBatch: Arrays are not equal in length"
+        );
+        require(
+            _tokenIds.length == _length,
+            "LazyBox::setTokenURIBatch: Array length not equal length"
+        );
+
+        for (uint256 i; i < _tokenIds.length; ) {
+            super._setTokenURI(_tokenIds[i], _tokenURIs[i]);
+            unchecked {
+                ++i;
+            }
+        }
+    }
+
     function _burn(
         uint256 tokenId
     ) internal override(ERC721Upgradeable, ERC721URIStorageUpgradeable) {
