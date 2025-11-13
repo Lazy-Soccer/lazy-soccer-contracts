@@ -1,10 +1,12 @@
-const { STUB_ADDRESS } = require('./common.constants');
+const { STUB_ADDRESS, ZERO_ADDRESS } = require('./common.constants');
 
 const FEE_WALLET = process.env.FEE_WALLET || STUB_ADDRESS;
 const FEE_SECOND_WALLET = STUB_ADDRESS;
 const BACKEND_SIGNER = process.env.BACKEND_SIGNER || STUB_ADDRESS;
 const CURRENCY_ADDRESS = process.env.CURRENCY_ADDRESS || STUB_ADDRESS;
 const ADMIN = process.env.ADMIN?.split(',') || [STUB_ADDRESS];
+const ROYALTY_WALLET = process.env.ROYALTY_WALLET || ZERO_ADDRESS;
+const ROYALTY_PERCENT = process.env.ROYALTY_PERCENT || 0;
 
 module.exports = {
     FEE_WALLET,
@@ -12,4 +14,6 @@ module.exports = {
     BACKEND_SIGNER,
     ADMIN,
     CURRENCY_ADDRESS,
+    ROYALTY_WALLET,
+    ROYALTY_PERCENT
 };

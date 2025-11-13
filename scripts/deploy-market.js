@@ -35,10 +35,11 @@ async function main() {
         },
     );
 
+    await marketplace.deployed();
+
     console.log(
         'Marketplace deployed to:',
-        marketplace.address,
-        marketplace.implementation.address,
+        marketplace?.address,
     );
 
     for (const nft of NFTS) {
@@ -53,14 +54,14 @@ async function main() {
         await tx.wait(5);
     }
 
-    await new Promise((r) => setTimeout(r, 30000));
+    // await new Promise((r) => setTimeout(r, 30000));
 
-    const currentImplAddress = await upgrades.erc1967.getImplementationAddress(
-        marketplace.address,
-    );
+    // const currentImplAddress = await upgrades.erc1967.getImplementationAddress(
+    //     marketplace.address,
+    // );
 
-    await verify(currentImplAddress, args);
-    await verify(marketplace.address, args);
+    // await verify(currentImplAddress, args);
+    // await verify(marketplace.address, args);
 }
 
 main().catch((error) => {
