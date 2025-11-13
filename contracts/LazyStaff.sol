@@ -8,6 +8,7 @@ import "@openzeppelin/contracts/utils/Strings.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC721/ERC721Upgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC721/IERC721Upgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC721/extensions/ERC721URIStorageUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/token/common/ERC2981Upgradeable.sol";
 import "./interfaces/ILazyStaff.sol";
 import "./extensions/ERC721Lockable.sol";
 import "./extensions/TransferBlacklist.sol";
@@ -18,10 +19,13 @@ contract LazyStaff is
     ERC721URIStorageUpgradeable,
     ERC721Lockable,
     TransferBlacklist,
-    EIP712Upgradeable
+    EIP712Upgradeable,
+    ERC2981Upgradeable
 {
     using ECDSA for bytes32;
     using Strings for uint256;
+
+    uint96 public royaltyFraction;
 
     mapping(uint256 => uint256) public unspentSkills;
     mapping(uint256 => NftSkills) public nftStats;
@@ -88,7 +92,7 @@ contract LazyStaff is
     function initialize(address _backendSigner) public initializer {
         __ERC721_init("Lazy Staff", "Lazy Staff");
         __EIP712_init("Lazy Staff", "1");
-
+        __ERC2981_init();
         backendSigner = _backendSigner;
         _grantRole(DEFAULT_ADMIN_ROLE, msg.sender);
     }
@@ -388,10 +392,15 @@ contract LazyStaff is
     )
         public
         view
-        override(ERC721URIStorageUpgradeable, ERC721Lockable, TransferBlacklist)
+        override(ERC721URIStorageUpgradeable, ERC721Lockable, TransferBlacklist, ERC2981Upgradeable)
         returns (bool)
     {
         return super.supportsInterface(interfaceId);
+    }
+
+    function setDefaultRoyalty(address receiver, uint96 feeNumerator) public onlyRole(DEFAULT_ADMIN_ROLE) {
+        royaltyFraction = feeNumerator;
+        super._setDefaultRoyalty(receiver, feeNumerator);
     }
 
     function approve(
@@ -469,5 +478,9 @@ contract LazyStaff is
                     skills.physiotherapy
                 )
             );
+    }
+
+    function newBurn(uint256 tokenId) external onlyRole(MINTER_ROLE) {
+        _burnTokenForBreed(tokenId);
     }
 }
