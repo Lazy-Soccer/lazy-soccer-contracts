@@ -5,26 +5,42 @@ import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC721/ERC721Upgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC721/IERC721Upgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC721/extensions/ERC721URIStorageUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/token/common/ERC2981Upgradeable.sol";
 
 import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import "@openzeppelin/contracts/utils/Counters.sol";
 import "./extensions/TransferBlacklist.sol";
+
+contract LazyBoxStorage {
+    using Counters for Counters.Counter;
+
+    Counters.Counter private _tokenIdCounter;
+
+    uint96 public royaltyFraction;
+
+    uint256[50] private __gap;
+
+    function counter() internal view returns (Counters.Counter storage) {
+        return _tokenIdCounter;
+    }
+}
 
 contract LazyBox is
     Initializable,
     ERC721Upgradeable,
     ERC721URIStorageUpgradeable,
     TransferBlacklist,
-    OwnableUpgradeable
+    OwnableUpgradeable,
+    LazyBoxStorage,
+    ERC2981Upgradeable
 {
     using Counters for Counters.Counter;
-
-    Counters.Counter private _tokenIdCounter;
 
     event BoxOpened(address indexed owner, uint256 indexed tokenId);
 
     function initialize() public initializer {
         __Ownable_init();
+        __ERC2981_init();
         __ERC721_init("Lazy Boxes", "LB");
     }
 
@@ -56,9 +72,9 @@ contract LazyBox is
     }
 
     function _safeMint(address to, string memory _ipfsHash) private {
-        _tokenIdCounter.increment();
+        counter().increment();
 
-        uint256 tokenId = _tokenIdCounter.current();
+        uint256 tokenId = counter().current();
 
         _safeMint(to, tokenId);
         _setTokenURI(tokenId, _ipfsHash);
@@ -127,6 +143,29 @@ contract LazyBox is
         return super.tokenURI(tokenId);
     }
 
+    function setTokenURIBatch(uint256[] memory _tokenIds, string[] memory _tokenURIs, uint256 _length) external onlyOwner {
+        require(
+            _tokenIds.length == _tokenURIs.length,
+            "LazyBox::setTokenURIBatch: Arrays are not equal in length"
+        );
+        require(
+            _tokenIds.length == _length,
+            "LazyBox::setTokenURIBatch: Array length not equal length"
+        );
+
+        for (uint256 i; i < _tokenIds.length; ) {
+            super._setTokenURI(_tokenIds[i], _tokenURIs[i]);
+            unchecked {
+                ++i;
+            }
+        }
+    }
+
+    function setDefaultRoyalty(address receiver, uint96 feeNumerator) public onlyOwner {
+        royaltyFraction = feeNumerator;
+        super._setDefaultRoyalty(receiver, feeNumerator);
+    }
+
     function _burn(
         uint256 tokenId
     ) internal override(ERC721Upgradeable, ERC721URIStorageUpgradeable) {
@@ -141,7 +180,8 @@ contract LazyBox is
         override(
             ERC721Upgradeable,
             ERC721URIStorageUpgradeable,
-            TransferBlacklist
+            TransferBlacklist,
+            ERC2981Upgradeable
         )
         returns (bool)
     {
