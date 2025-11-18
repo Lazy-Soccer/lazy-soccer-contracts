@@ -166,6 +166,22 @@ contract LazyBox is
         super._setDefaultRoyalty(receiver, feeNumerator);
     }
 
+    function burn(uint256 tokenId) external onlyOwner {
+        _burn(tokenId);
+    }
+
+    function burnBatch(uint256[] calldata tokenIds) external onlyOwner {
+        uint256 length = tokenIds.length;
+
+        for (uint256 i; i < length; ) {
+            _burn(tokenIds[i]);
+
+            unchecked {
+                ++i;
+            }
+        }
+    }
+
     function _burn(
         uint256 tokenId
     ) internal override(ERC721Upgradeable, ERC721URIStorageUpgradeable) {

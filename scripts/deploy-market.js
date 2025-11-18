@@ -51,17 +51,18 @@ async function main() {
         const role = await contract.LOCKER();
 
         const tx = await contract.grantRole(role, marketplace.address);
-        await tx.wait(5);
+        await tx.wait(50);
+        console.log(`Nft - ${nft} - Granted role ${role} to marketplace ${marketplace.address}`);
     }
 
-    // await new Promise((r) => setTimeout(r, 30000));
+    console.log('Waiting for 30 seconds...');
+    await new Promise((r) => setTimeout(r, 30000));
 
-    // const currentImplAddress = await upgrades.erc1967.getImplementationAddress(
-    //     marketplace.address,
-    // );
+    const currentImplAddress = await upgrades.erc1967.getImplementationAddress(
+        marketplace.address,
+    );
 
-    // await verify(currentImplAddress, args);
-    // await verify(marketplace.address, args);
+    await verify(currentImplAddress);
 }
 
 main().catch((error) => {

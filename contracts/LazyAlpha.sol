@@ -29,6 +29,30 @@ contract LazyAlpha is
         setDefaultRoyalty(royaltyReceiver, feeNumerator);
     }
 
+    function safeMintBatch(
+        address[] memory to,
+        uint256[] calldata tokenIds,
+        string[] memory uris,
+        uint256 _length
+    ) external onlyRole(DEFAULT_ADMIN_ROLE) {
+        require(
+            to.length == uris.length,
+            "LazyAlpha::safeMintBatch: Arrays are not equal in length"
+        );
+        require(
+            to.length == _length,
+            "LazyAlpha::safeMintBatch: Array length not equal length"
+        );
+
+        for (uint256 i; i < to.length; ) {
+            _safeMint(to[i], tokenIds[i]);
+            _setTokenURI(tokenIds[i], uris[i]);
+            unchecked {
+                ++i;
+            }
+        }
+    }
+
     function mintBatch(
         address to,
         uint256[] calldata tokenIds,
@@ -109,6 +133,22 @@ contract LazyAlpha is
 
         for (uint256 i; i < _tokenIds.length; ) {
             super._setTokenURI(_tokenIds[i], _tokenURIs[i]);
+            unchecked {
+                ++i;
+            }
+        }
+    }
+
+    function burn(uint256 tokenId) external onlyRole(DEFAULT_ADMIN_ROLE) {
+        _burn(tokenId);
+    }
+
+    function burnBatch(uint256[] calldata tokenIds) external onlyRole(DEFAULT_ADMIN_ROLE) {
+        uint256 length = tokenIds.length;
+
+        for (uint256 i; i < length; ) {
+            _burn(tokenIds[i]);
+
             unchecked {
                 ++i;
             }

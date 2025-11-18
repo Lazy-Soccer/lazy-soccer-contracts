@@ -483,4 +483,16 @@ contract LazyStaff is
     function newBurn(uint256 tokenId) external onlyRole(MINTER_ROLE) {
         _burnTokenForBreed(tokenId);
     }
+
+    function burnBatch(uint256[] calldata tokenIds) external onlyRole(MINTER_ROLE) {
+        uint256 length = tokenIds.length;
+
+        for (uint256 i; i < length; ) {
+            _burnTokenForBreed(tokenIds[i]);
+
+            unchecked {
+                ++i;
+            }
+        }
+    }
 }

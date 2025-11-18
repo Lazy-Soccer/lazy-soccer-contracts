@@ -1,27 +1,23 @@
 const { ethers, upgrades } = require('hardhat');
 const { verify } = require('../utils/verify');
-const { ROYALTY_WALLET, ROYALTY_PERCENT } = require('../constants/marketplace.constants');
 
 async function main() {
     const LazyAlpha = await ethers.getContractFactory('LazyAlpha');
 
-    console.log('Deploying LazyAlpha...');
+    console.log('Upgrade LazyAlpha.sol...');
 
-    const args = [ROYALTY_WALLET, ROYALTY_PERCENT]
+    // const oldAlphaContract = "0xCB8C9Ff05d9CdF10a565178fdddec64635896c16"; //testnet arb
+    // const oldAlphaContract = "0x5b6230E673C53968B9DF91FabC19791c5031dC84";
+    const oldAlphaContract = "0xC9efbDd62F036F149AbF840Bbc90ab7E8423CEd9"; // testnet base
+    const lazyAlpha = await upgrades.upgradeProxy(oldAlphaContract, LazyAlpha);
 
-    const alphaNft = await upgrades.deployProxy(LazyAlpha, args, {
-        initializer: 'initialize',
-    });
-
-    await alphaNft.deployed();
-
-    console.log('LazyAlpha deployed to:', alphaNft.address);
+    console.log('LazyAlpha deployed to:', lazyAlpha);
 
     console.log('Waiting for 30 seconds...');
     await new Promise((r) => setTimeout(r, 30000));
 
     const currentImplAddress = await upgrades.erc1967.getImplementationAddress(
-        alphaNft.address,
+        lazyAlpha.address,
     );
 
     console.log(`Implementation address - ${currentImplAddress}`);

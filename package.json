@@ -8,6 +8,7 @@
     "coverage": "hardhat coverage"
   },
   "devDependencies": {
+    "@nomicfoundation/hardhat-verify": "^2.1.0",
     "@nomicfoundation/hardhat-toolbox": "^2.0.2",
     "@openzeppelin/contracts": "4.9.3",
     "@openzeppelin/contracts-upgradeable": "4.9.3",

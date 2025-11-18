@@ -1,18 +1,28 @@
 const { ethers, upgrades } = require('hardhat');
+const { verify } = require('../utils/verify');
 
 async function main() {
     const LazyStaff = await ethers.getContractFactory('LazyStaff');
 
     console.log('Upgrade LazyStaff.sol...');
 
-    // const oldBoxContract = "0x3f039FC20Df35151daC595A29B97FF705139F7C3"; //testnet
-    const oldStaffContract = "0x8d3A323540A5Cf3AD2c86a75C14AaA83BEbd1066";
+    // const oldStaffContract = "0xc106f25c60ad880cb916cef2cc19785e2e36f7f5"; //testnet arb
+    const oldStaffContract = "0x0f0fC063d0DD0F0d62515f805dfE3dD84377fd06"; //testnet base
 
     const lazyStaff = await upgrades.upgradeProxy(oldStaffContract, LazyStaff);
 
-    // await lazyBoxes.deployed();
-
     console.log('LazyStaff deployed to:', lazyStaff);
+
+    console.log('Waiting for 30 seconds...');
+    await new Promise((r) => setTimeout(r, 30000));
+
+    const currentImplAddress = await upgrades.erc1967.getImplementationAddress(
+        lazyStaff.address,
+    );
+
+    console.log(`Implementation address - ${currentImplAddress}`);
+
+    await verify(currentImplAddress);
 }
 
 main().catch((error) => {

@@ -1,4 +1,4 @@
-require('@nomicfoundation/hardhat-toolbox');
+require('@nomicfoundation/hardhat-verify');
 require('@openzeppelin/hardhat-upgrades');
 require('dotenv').config();
 
@@ -6,13 +6,12 @@ require('dotenv').config();
 const POLYGON_MAINNET_RPC_URL =
     process.env.POLYGON_MAINNET_RPC_URL || 'Your alchemy url';
 const MUMBAI_RPC_URL = process.env.MUMBAI_RPC_URL || 'Your alchemy url';
-const POLYGONSCAN_API_KEY =
-    process.env.POLYGONSCAN_API_KEY || 'Your polygonscan API key';
 const ARBITRUM_SEPOLIA_RPC =
     process.env.ARBITRUM_SEPOLIA_RPC || 'Your arbitrum sepolia rpc url';
-const ARBISCAN_API_KEY =
-    process.env.ARBISCAN_API_KEY || 'Your arbiscan API key';
 const ARBITRUM_RPC = process.env.ARBITRUM_RPC || 'Your arbitrum rpc url';
+const BASE_SEPOLIA_RPC = process.env.BASE_SEPOLIA_RPC || 'Your base sepolia rpc url';
+const BASE_RPC = process.env.BASE_RPC || 'Your base rpc url';
+const ETHERSCAN_API_KEY = process.env.ETHERSCAN_API_KEY || 'Your etherscan API key';
 
 //other
 const REPORT_GAS = process.env.REPORT_GAS || false;
@@ -36,7 +35,7 @@ module.exports = {
         ],
     },
 
-    defaultNetwork: 'hardhat',
+    defaultNetwork: 'baseSepolia',
     networks: {
         hardhat: {
             chainId: 31337,
@@ -69,6 +68,18 @@ module.exports = {
             saveDeployments: true,
             chainId: 42161,
         },
+        baseSepolia: {
+            url: BASE_SEPOLIA_RPC,
+            accounts: !!PRIVATE_KEY ? [PRIVATE_KEY] : [],
+            saveDeployments: true,
+            chainId: 84532,
+        },
+        base: {
+            url: BASE_RPC,
+            accounts: !!PRIVATE_KEY ? [PRIVATE_KEY] : [],
+            saveDeployments: true,
+            chainId: 8453,
+        },
     },
     namedAccounts: {
         deployer: {
@@ -89,29 +100,25 @@ module.exports = {
         timeout: 200000, // 200 seconds max for running tests
     },
     etherscan: {
+        enabled: true,
         // npx hardhat verify --network <NETWORK> <CONTRACT_ADDRESS> <CONSTRUCTOR_PARAMETERS>
-        apiKey: {
-            polygonMumbai: POLYGONSCAN_API_KEY,
-            polygon: POLYGONSCAN_API_KEY,
-            arbitrumSepolia: ARBISCAN_API_KEY,
-            arbitrum: ARBISCAN_API_KEY,
-        },
+        apiKey: ETHERSCAN_API_KEY,
 
         customChains: [
             {
-                network: 'arbitrumSepolia',
-                chainId: 421614,
+                network: 'baseSepolia',
+                chainId: 84532,
                 urls: {
-                    apiURL: 'https://api-sepolia.arbiscan.io/api',
-                    browserURL: 'https://sepolia.arbiscan.io',
+                    apiURL: 'https://api.etherscan.io/v2/api',
+                    browserURL: 'https://sepolia.basescan.org',
                 },
             },
             {
-                network: 'arbitrum',
-                chainId: 42161,
+                network: 'base',
+                chainId: 8453,
                 urls: {
-                    apiURL: 'https://api.arbiscan.io/api',
-                    browserURL: 'https://arbiscan.io',
+                    apiURL: 'https://api.etherscan.io/v2/api',
+                    browserURL: 'https://basescan.org',
                 },
             },
         ],

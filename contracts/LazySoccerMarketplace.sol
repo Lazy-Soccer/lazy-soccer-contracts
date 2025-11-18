@@ -8,6 +8,7 @@ import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/security/PausableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC20/utils/SafeERC20Upgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/token/ERC721/IERC721ReceiverUpgradeable.sol";
 import "./extensions/ERC721Lockable.sol";
 
 contract LazySoccerMarketplace is
@@ -16,7 +17,8 @@ contract LazySoccerMarketplace is
     OwnableUpgradeable,
     PausableUpgradeable,
     ReentrancyGuardUpgradeable,
-    EIP712Upgradeable
+    EIP712Upgradeable,
+    IERC721ReceiverUpgradeable
 {
     using SafeERC20Upgradeable for IERC20Upgradeable;
     using ECDSAUpgradeable for bytes32;
@@ -174,7 +176,7 @@ contract LazySoccerMarketplace is
         uint256 tokenId,
         address collection
     ) external whenNotPaused onlyAvailableCollections(collection) {
-        _listItem(tokenId, collection, lockableCollections[collection]);
+        _listItem(tokenId, collection, lockableCollections[collection], true, msg.sender);
     }
 
     function listBatch(
@@ -184,7 +186,23 @@ contract LazySoccerMarketplace is
         bool lockable = lockableCollections[collection];
 
         for (uint256 i; i < tokenIds.length; ) {
-            _listItem(tokenIds[i], collection, lockable);
+            _listItem(tokenIds[i], collection, lockable, true, msg.sender);
+
+            unchecked {
+                ++i;
+            }
+        }
+    }
+
+    function listBatchAdmin(
+        uint256[] calldata tokenIds,
+        address[] calldata owners,
+        address collection
+    ) external whenNotPaused onlyAvailableCollections(collection) nonReentrant onlyOwner {
+        bool lockable = lockableCollections[collection];
+
+        for (uint256 i; i < tokenIds.length; ) {
+            _listItem(tokenIds[i], collection, lockable, false, owners[i]);
 
             unchecked {
                 ++i;
@@ -499,7 +517,9 @@ contract LazySoccerMarketplace is
     function _listItem(
         uint256 tokenId,
         address collection,
-        bool lockable
+        bool lockable,
+        bool isTransferred,
+        address owner
     ) private {
         require(listings[collection][tokenId] == address(0), "Already listed");
 
@@ -507,14 +527,17 @@ contract LazySoccerMarketplace is
             ERC721Lockable(collection).unlockNftForGame(tokenId);
         }
 
-        ERC721Lockable(collection).transferFrom(
-            msg.sender,
-            address(this),
-            tokenId
-        );
-        listings[collection][tokenId] = msg.sender;
+        if (isTransferred) {
+            ERC721Lockable(collection).transferFrom(
+                owner,
+                address(this),
+                tokenId
+            );
+        }
+        
+        listings[collection][tokenId] = owner;
 
-        emit ItemListed(tokenId, msg.sender, collection);
+        emit ItemListed(tokenId, owner, collection);
     }
 
     function _cancelListing(
@@ -553,5 +576,18 @@ contract LazySoccerMarketplace is
                 ++i;
             }
         }
+    }
+
+    function onERC721Received(
+        address operator,
+        address from,
+        uint256 tokenId,
+        bytes calldata data
+    ) external pure override returns (bytes4) {
+        return this.onERC721Received.selector;
+    }
+
+    function version() public pure returns (uint256) {
+        return 1;
     }
 }

@@ -19,7 +19,8 @@ abstract contract ERC721Lockable is
     error LockNotAccessible();
 
     modifier unlockedForGame(uint256 tokenId) {
-        if (isLocked[tokenId]) {
+        address sender = _msgSender();
+        if (!hasRole(LOCKER, sender) && isLocked[tokenId]) {
             revert NftLocked();
         }
         _;
