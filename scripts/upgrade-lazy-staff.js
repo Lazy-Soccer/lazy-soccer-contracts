@@ -7,7 +7,7 @@ async function main() {
     console.log('Upgrade LazyStaff.sol...');
 
     // const oldStaffContract = "0xc106f25c60ad880cb916cef2cc19785e2e36f7f5"; //testnet arb
-    const oldStaffContract = "0x0f0fC063d0DD0F0d62515f805dfE3dD84377fd06"; //testnet base
+    const oldStaffContract = "0x8d3A323540A5Cf3AD2c86a75C14AaA83BEbd1066"; //testnet base
 
     const lazyStaff = await upgrades.upgradeProxy(oldStaffContract, LazyStaff);
 

@@ -7,8 +7,8 @@ async function main() {
     console.log('Upgrade LazyAlpha.sol...');
 
     // const oldAlphaContract = "0xCB8C9Ff05d9CdF10a565178fdddec64635896c16"; //testnet arb
-    // const oldAlphaContract = "0x5b6230E673C53968B9DF91FabC19791c5031dC84";
-    const oldAlphaContract = "0xC9efbDd62F036F149AbF840Bbc90ab7E8423CEd9"; // testnet base
+    const oldAlphaContract = "0xc20f7E56c5D085889469F2229a8c48b6D19a999c";
+    // const oldAlphaContract = "0xC9efbDd62F036F149AbF840Bbc90ab7E8423CEd9"; // testnet base
     const lazyAlpha = await upgrades.upgradeProxy(oldAlphaContract, LazyAlpha);
 
     console.log('LazyAlpha deployed to:', lazyAlpha);

@@ -461,6 +461,7 @@ contract LazyStaff is
         uint256 tokenId,
         uint256 batchSize
     ) internal override unlockedForGame(tokenId) {
+        revert("LazyStaff::transfer: Transfer is now blocked");
         super._beforeTokenTransfer(from, to, tokenId, batchSize);
     }
 

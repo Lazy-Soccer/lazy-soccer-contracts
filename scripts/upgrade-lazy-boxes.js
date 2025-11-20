@@ -8,7 +8,7 @@ async function main() {
 
     //const oldBoxContract = "0x3f039FC20Df35151daC595A29B97FF705139F7C3"; //testnet arb
     // const oldBoxContract = "0x5b6230E673C53968B9DF91FabC19791c5031dC84";
-    const oldBoxContract = "0x351D55Cb7E08E412C20831536Bda47BaF65887D9"; // testnet base
+    const oldBoxContract = "0x5b6230E673C53968B9DF91FabC19791c5031dC84"; // testnet base
     const lazyBoxes = await upgrades.upgradeProxy(oldBoxContract, LazyBoxes);
 
     console.log('LazyBoxes deployed to:', lazyBoxes);

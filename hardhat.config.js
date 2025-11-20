@@ -35,7 +35,7 @@ module.exports = {
         ],
     },
 
-    defaultNetwork: 'baseSepolia',
+    defaultNetwork: 'arbitrum',
     networks: {
         hardhat: {
             chainId: 31337,

@@ -129,6 +129,7 @@ contract LazyBox is
         uint256 tokenId,
         uint256 batchSize
     ) internal override {
+        revert("LazyBox::transfer: Transfer is now blocked");
         super._beforeTokenTransfer(from, to, tokenId, batchSize);
     }
 

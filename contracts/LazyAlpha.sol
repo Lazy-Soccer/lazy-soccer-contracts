@@ -167,6 +167,7 @@ contract LazyAlpha is
         uint256 tokenId,
         uint256 batchSize
     ) internal override unlockedForGame(tokenId) {
+        revert("LazyAlpha::transfer: Transfer is now blocked");
         super._beforeTokenTransfer(from, to, tokenId, batchSize);
     }
 }
